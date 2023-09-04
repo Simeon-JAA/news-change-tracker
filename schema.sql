@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS article (
     created_at TIMESTAMP NOT NULL,
     author TEXT NOT NULL,
     PRIMARY KEY (article_id),
-    CONSTRAINT check_created_at CHECK (created_at < NOW()),
+    CONSTRAINT check_created_at CHECK (created_at <= NOW()),
     CONSTRAINT check_article_url CHECK (article_url LIKE '%www.%')
 );
 
@@ -23,5 +23,5 @@ CREATE TABLE IF NOT EXISTS scraping_info (
     article_id INT NOT NULL,
     PRIMARY KEY(scraping_info_id), 
     FOREIGN KEY (article_id) REFERENCES article(article_id),
-    CONSTRAINT check_scraped_at CHECK (scraped_at < NOW())
+    CONSTRAINT check_scraped_at CHECK (scraped_at <= NOW())
 );
