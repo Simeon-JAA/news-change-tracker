@@ -34,10 +34,8 @@ def scrape_article(article_url: str)->dict:
         body = soup.find('main', id='main-content')
         headline = soup.find('h1').text
         relevant_divs = body.findAll('div', attrs={"data-component": "text-block"})
-        for div in relevant_divs:
-            print(div.find('p').text)
-        
-        text = " ".join([p.text for p in body.findAll('p')])
+       
+        text = " ".join(div.find('p').text for div in relevant_divs)
         
         article_dict["body"] = (text)
         article_dict["headline"] = headline
