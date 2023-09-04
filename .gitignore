@@ -160,5 +160,5 @@ cython_debug/
 #.idea/
 
 .env
-.tfvars
+terraform/*.tfvars
 .DS_store
