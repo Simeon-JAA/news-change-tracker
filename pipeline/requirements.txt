@@ -1,4 +1,8 @@
 requests
 feedparser
 beautifulsoup4
+pylint
+pytest
+python-dotenv
+psycopg2
 pandas
