@@ -7,9 +7,9 @@ resource "aws_security_group" "c8-news-change-tracker-rds-sg" {
   description = "Security group that allows communcation all ports to RDS inbound and outbound"
   vpc_id = "vpc-0e0f897ec7ddc230d"
   ingress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
