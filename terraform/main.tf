@@ -35,4 +35,5 @@ resource "aws_db_instance" "c8-news-change-tracker-rds-db" {
     db_subnet_group_name = "public_subnet_group"
     vpc_security_group_ids = [aws_security_group.c8-news-change-tracker-rds-sg.id]
     skip_final_snapshot = true
+    ca_cert_identifier = "rds-ca-rsa2048-g1"
 }
