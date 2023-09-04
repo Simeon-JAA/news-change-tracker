@@ -49,3 +49,17 @@ resource "aws_s3_bucket_versioning" "c8-news-change-tracker-bucket-versioning" {
     status = "Disabled"
   }
 }
+
+resource "aws_ecr_repository" "c8-news-change-tracker-etl-ecr" {
+  name                 = "c8-news-change-tracker-etl-ecr"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = false
+  }
+}
+
+data "aws_ecr_image" "c8-news-change--tracker-etl-image" {
+  repository_name = aws_ecr_repository.c8-news-change-tracker-etl-ecr.name
+  image_tag       = "latest"
+}
