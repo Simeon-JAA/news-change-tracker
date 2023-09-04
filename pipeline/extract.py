@@ -27,7 +27,7 @@ def extract_urls(feed: FeedParserDict) -> list:
 def scrape_article(article_url: str)->dict:
     """For a given url, scrape relevant data using BS4, return as a dict"""
     article_dict = {}
-    
+
     article = requests.get(article_url)
     soup = bs(article.content, 'lxml')
     body = soup.find('main', id='main-content')
@@ -35,7 +35,7 @@ def scrape_article(article_url: str)->dict:
     if body is not None:
         relevant_divs = body.findAll('div', attrs={"data-component": "text-block"})
         text = " ".join(div.find('p').text for div in relevant_divs)
-    else:    
+    else:
         body = soup.find('article')
         if body:
             text = " ".join([p.text for p in body.findAll('p')])
@@ -64,15 +64,11 @@ def scrape_all_articles(urls:list)->pd.DataFrame:
 if __name__ == "__main__":
     feed = read_feed(RSS_FEED)
     rss_df = transform_to_pandas(feed)
-    print(rss_df)
-    
+
     urls = extract_urls(feed)
-    # url = 'https://www.bbc.co.uk/sport/football/66703473'
-    # print(scrape_article(url))
-   
     articles = scrape_all_articles(urls)
-    print(articles)
-    
+
+
     articles.to_csv("scraped_articles.csv", index=False)
     rss_df.to_csv("rss_feed.csv", index=False)
     
