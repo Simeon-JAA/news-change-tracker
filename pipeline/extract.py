@@ -30,45 +30,50 @@ def scrape_article(article_url: str)->dict:
     
     article = requests.get(article_url)
     soup = bs(article.content, 'lxml')
-    try:
-        body = soup.find('main', id='main-content')
-        headline = soup.find('h1').text
+    body = soup.find('main', id='main-content')
+    headline = soup.find('h1').text
+    if body is not None:
         relevant_divs = body.findAll('div', attrs={"data-component": "text-block"})
-       
         text = " ".join(div.find('p').text for div in relevant_divs)
-        
-        article_dict["body"] = (text)
-        article_dict["headline"] = headline
-
-    # BBC sport scraping - separate func?
-    except:
-    
+    else:    
         body = soup.find('article')
-        headline = soup.find('h1').text
-        text = " ".join([p.text for p in body.findAll('p')])
+        if body:
+            text = " ".join([p.text for p in body.findAll('p')])
 
-        article_dict["body"] = (text)
-        article_dict["headline"] = headline
+    article_dict["body"] = text
+    article_dict["headline"] = headline
+    article_dict["url"] = article_url
 
     return article_dict
 
 
+def scrape_all_articles(urls:list)->pd.DataFrame:
+    """Scrapes article data from a list of URLs and returns a dataframe"""
+    articles = []
+    for url in urls:
+        try:
+            article = scrape_article(url)
+            if article["headline"] and article["body"]:
+                articles.append(article)
+            else: 
+                continue
+        except:
+            continue
+    return pd.DataFrame(articles)
+
 if __name__ == "__main__":
     feed = read_feed(RSS_FEED)
+    rss_df = transform_to_pandas(feed)
+    print(rss_df)
     
     urls = extract_urls(feed)
-    url = 'https://www.bbc.co.uk/news/uk-66531409?at_medium=RSS&at_campaign=KARANGA'
-    scrape_article(url)
+    # url = 'https://www.bbc.co.uk/sport/football/66703473'
+    # print(scrape_article(url))
    
-    # articles = []
-    # for url in urls:
-    #     try:
-    #         print(url)
-    #         article = scrape_article(url)
-    #         print(article["headline"])
-    #         if article["headline"]:
-    #             articles.append(article)
-    #     except:
-    #         continue
+    articles = scrape_all_articles(urls)
+    print(articles)
+    
+    articles.to_csv("scraped_articles.csv", index=False)
+    rss_df.to_csv("rss_feed.csv", index=False)
     
 
