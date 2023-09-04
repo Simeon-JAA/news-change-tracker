@@ -15,11 +15,6 @@ CREATE TABLE IF NOT EXISTS article (
     CONSTRAINT check_article_url CHECK (article_url LIKE '%www.%' or article_url LIKE '%WWW.%')
 );
 
-insert into article
-(article_url, source, created_at, author)
-values 
-('www.google.com', 'BBC', '2023-01-03 10:10:10', 'Simeon');
-
 CREATE TABLE IF NOT EXISTS scraping_info (
     scraping_info_id INT GENERATED ALWAYS AS IDENTITY,
     scraped_at TIMESTAMP NOT NULL,
