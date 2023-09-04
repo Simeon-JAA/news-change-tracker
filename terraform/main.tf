@@ -35,5 +35,17 @@ resource "aws_db_instance" "c8-news-change-tracker-rds-db" {
     db_subnet_group_name = "public_subnet_group"
     vpc_security_group_ids = [aws_security_group.c8-news-change-tracker-rds-sg.id]
     skip_final_snapshot = true
-    ca_cert_identifier = "rds-ca-rsa2048-g1"
+}
+
+resource "aws_s3_bucket" "c8-news-change-tracker-bucket" {
+  bucket = "c8-news-change-tracker-bucket"
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_versioning" "c8-news-change-tracker-bucket-versioning" {
+  bucket = aws_s3_bucket.c8-news-change-tracker-bucket.id
+
+  versioning_configuration {
+    status = "Disabled"
+  }
 }

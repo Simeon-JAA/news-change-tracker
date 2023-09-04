@@ -1,3 +1,7 @@
 pytest 
 python-dotenv
 psycopg2
+requests
+feedparser
+beautifulsoup4
+pandas
