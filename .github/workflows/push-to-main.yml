@@ -24,7 +24,6 @@ jobs:
   pytest_run:
     name: "Run Pytest on the code"
     runs-on: ubuntu-latest
-    needs: pylint_run
     steps:
     - name: clone repository
       uses: actions/checkout@v3
