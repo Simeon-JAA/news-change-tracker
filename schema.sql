@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS article (
     article_id INT GENERATED ALWAYS AS IDENTITY,
     article_url TEXT NOT NULL,
     source TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
     author TEXT NOT NULL,
     PRIMARY KEY (article_id),
     CONSTRAINT check_created_at CHECK (created_at <= NOW()),
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS article (
 
 CREATE TABLE IF NOT EXISTS scraping_info (
     scraping_info_id INT GENERATED ALWAYS AS IDENTITY,
-    scraped_at TIMESTAMP NOT NULL,
+    scraped_at TIMESTAMPTZ NOT NULL,
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     article_id INT NOT NULL,
