@@ -28,7 +28,7 @@ def scrape_article(article_url: str)->dict:
     """For a given url, scrape relevant data using BS4, return as a dict"""
     article_dict = {}
 
-    article = requests.get(article_url)
+    article = requests.get(article_url, timeout=10)
     soup = bs(article.content, 'lxml')
     body = soup.find('main', id='main-content')
     headline = soup.find('h1').text
@@ -49,27 +49,25 @@ def scrape_article(article_url: str)->dict:
 
 def scrape_all_articles(urls:list)->pd.DataFrame:
     """Scrapes article data from a list of URLs and returns a dataframe"""
-    articles = []
+    article_list = []
     for url in urls:
         try:
             article = scrape_article(url)
             if article["headline"] and article["body"]:
-                articles.append(article)
-            else: 
+                article_list.append(article)
+            else:
                 continue
         except:
             continue
-    return pd.DataFrame(articles)
+    return pd.DataFrame(article_list)
 
 if __name__ == "__main__":
-    feed = read_feed(RSS_FEED)
-    rss_df = transform_to_pandas(feed)
+    rss_feed = read_feed(RSS_FEED)
+    rss_df = transform_to_pandas(rss_feed)
 
-    urls = extract_urls(feed)
-    articles = scrape_all_articles(urls)
+    article_urls = extract_urls(rss_feed)
+    articles = scrape_all_articles(article_urls)
 
 
     articles.to_csv("scraped_articles.csv", index=False)
     rss_df.to_csv("rss_feed.csv", index=False)
-    
-
