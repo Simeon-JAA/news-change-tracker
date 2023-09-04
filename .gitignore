@@ -163,6 +163,9 @@ cython_debug/
 # csvs
 *.csv
 
+#jupyter
+view_data.ipynb
+
 .env
 .DS_store
 terraform/terraform.tfvars
