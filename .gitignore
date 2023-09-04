@@ -160,5 +160,10 @@ cython_debug/
 #.idea/
 
 .env
-.tfvars
 .DS_store
+terraform/terraform.tfvars
+terraform/.terraform
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.tfstate.lock.info
