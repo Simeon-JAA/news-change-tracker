@@ -1,12 +1,6 @@
 # pylint: skip-file
 """
-TESTS: 
-7: test requests status codes
-8: test scrape all articles appends list with valid article
-9: test scrape skips a url if no valid article
-
-
-Break down test article into smaller func?
+Tests extract.py functionality
 """
 import pytest
 import requests.exceptions
