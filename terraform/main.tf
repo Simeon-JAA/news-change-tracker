@@ -70,17 +70,16 @@ resource "aws_ecs_task_definition" "c8-news-change-tracker-etl-task-definition" 
   network_mode             = "awsvpc"
   cpu                      = 1024
   memory                   = 3072
-  container_definitions    = <<TASK_DEFINITION
-[
-  {
-    "name": "iis",
-    "image": "mcr.microsoft.com/windows/servercore/iis",
+  container_definitions    = [
+    {
+    "name": "c8-news-change-tracker-etl-container",
+    "image": "129033205317.dkr.ecr." + var.REGION + ".amazon.com/" + aws_ecr_repository.c8-news-change-tracker-etl-ecr.name + ":" + aws_ecr_image.c8-news-change-tracker-etl-task-definition.tag,
     "cpu": 1024,
-    "memory": 2048,
+    "memory": 3072,
     "essential": true
   }
 ]
-TASK_DEFINITION
+
 
   runtime_platform {
     operating_system_family = "WINDOWS_SERVER_2019_CORE"
