@@ -1,9 +1,9 @@
 """Handles all load functions that load data and information into the database"""
-
+# pylint: disable=invalid-name
 from os import environ
 import pandas as pd
 from dotenv import load_dotenv
-from psycopg2 import connect, OperationalError
+from psycopg2 import connect
 from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 
@@ -21,6 +21,8 @@ def get_db_connection() -> connection:
     except Exception as exc:
         print(f"get_db_connection Error: {exc}")
 
+    return None
+
 
 def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
     """Connects to the database and returns dataframe of selected table and column(s)"""
@@ -31,7 +33,8 @@ def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
     return pd.DataFrame(result)
 
 
-def check_for_duplicates(conn: connection, df: pd.DataFrame, table: str, column: str) -> pd.DataFrame:
+def check_for_duplicates(conn: connection, df: pd.DataFrame, table: str, column: str) \
+    -> pd.DataFrame:
     """Checks a local dataframe against a database table on specific column.
     Returns non-duplicative local data only"""
     df = df.copy()
@@ -63,10 +66,16 @@ def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -
                        article_id) VALUES %s""", tuples)
         cur.commit()
 
+# hardcode
+
+def add_to_authors_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
+    """Converts df into tuples, then adds to authors table.
+    NB: needs article_id column converted into foreign key reference"""
+    pass
 
 if __name__ == "__main__":
-    conn = get_db_connection()
-    df = pd.read_csv(TRANSFORMED_DATA)
+    db_conn = get_db_connection()
+    df_transformed = pd.read_csv(TRANSFORMED_DATA)
 
-    df_no_duplicates = check_for_duplicates(conn, df, "article", "article_url")
-    conn.close()
+    df_no_duplicates = check_for_duplicates(db_conn, df_transformed, "article", "article_url")
+    db_conn.close()
