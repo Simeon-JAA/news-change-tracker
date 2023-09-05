@@ -2,14 +2,14 @@
 
 DROP DATABASE IF EXISTS news_info;
 CREATE DATABASE news_info;
-\c news_info; 
+\c news_info;
 
 CREATE TABLE IF NOT EXISTS article (
     article_id INT GENERATED ALWAYS AS IDENTITY,
     article_url TEXT NOT NULL,
     source TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    author TEXT NOT NULL,
+    author TEXT,
     PRIMARY KEY (article_id),
     CONSTRAINT check_created_at CHECK (created_at <= NOW()),
     CONSTRAINT check_article_url CHECK (article_url LIKE '%www.%' or article_url LIKE '%WWW.%')
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS scraping_info (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     article_id INT NOT NULL,
-    PRIMARY KEY(scraping_info_id), 
+    PRIMARY KEY(scraping_info_id),
     FOREIGN KEY (article_id) REFERENCES article(article_id),
     CONSTRAINT check_scraped_at CHECK (scraped_at <= NOW())
 );
