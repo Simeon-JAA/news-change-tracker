@@ -1,5 +1,7 @@
 """Transforms the data by flattening and cleaning before it goes into the load stage"""
 
+from datetime import datetime
+
 import pandas as pd
 from pandas import DataFrame
 
@@ -20,31 +22,14 @@ def get_scraped_articles_df(file_path: str) -> DataFrame:
     return scraped_article_df
 
 
-def format_time_to_timestamp(time_in_col: str) -> str:
+def format_time_to_timestamp(time_in_col: str) -> datetime:
     """Formats time to timestamp format to load into postgres"""
 
-    month_to_number =  {"jan": "01", "feb": "02", "mar": "03",
-                        "apr": "04", "may": "05", "jun": "06",
-                        "jul": "07", "aug": "08", "sep": "09",
-                        "oct": "10", "nov": "11", "dec": "12",
-                        }
+    time_in_col = time_in_col[5:-4]
 
-    time_in_col = time_in_col.split(" ")
-    time_in_col = time_in_col[1:]
+    time_in_col = datetime.strptime(time_in_col, "%d %b %Y %H:%M:%S")
 
-    time_in_col.insert(0 , time_in_col.pop(2))
-    time_in_col.insert(1 , time_in_col.pop(2))
-
-    time_in_col[1] = month_to_number[time_in_col[1].lower()]
-
-    if time_in_col[-1].upper()  == "GMT":
-        date = "-".join(time_in_col[:-2])
-        time = time_in_col[-2]
-
-        return f"{date} {time}"
-    #TODO what if time is not GMT?
-
-    return
+    return time_in_col
 
 
 def format_rss_feed_df(rss_df: DataFrame) -> DataFrame:
@@ -116,6 +101,7 @@ if __name__ == "__main__":
                             right_on="id",
                             how="inner")
 
-    joined_data = joined_data[["body, headline, source, url, author, title, published"]]
+    joined_data = joined_data[["title", "url", "headline", "body", "source", "author", "published"]]
 
-    joined_data.to_csv("transformed_data.csv")
+    print(joined_data["published"])
+    # joined_data.to_csv("transformed_data.csv")
