@@ -2,6 +2,7 @@
 # pylint: disable=invalid-name
 from os import environ
 import datetime
+import re
 import pandas as pd
 from dotenv import load_dotenv
 from psycopg2 import connect
@@ -35,16 +36,26 @@ def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
     return pd.DataFrame(result)
 
 
-def check_for_duplicates(conn: connection, df: pd.DataFrame, table: str, df_column: str, db_column) \
-    -> pd.DataFrame:
-    """Checks a local dataframe against a database table on specific column.
-    Returns non-duplicative local data only"""
+def check_for_duplicates_pandas_method(conn: connection, df: pd.DataFrame, table: str, \
+                        df_column: str, db_column) -> pd.DataFrame:
+    """Checks a local dataframe against a database table on specific column by downloading
+    to pandas. Returns non-duplicative local data only."""
     df = df.copy()
     articles = get_data_from_db(conn, table)
-    df = df[not df[df_column].isin(articles[db_column])]
+    print(articles)
+    if not articles.empty:
+        df = df[not df[df_column].isin(articles[db_column])]
     # test this line
 
     return df
+
+
+def check_for_duplicates_sql_method(conn: connection, table: str, column: str, value: str) -> list:
+    """Checks for a duplicate in the specified table and column. Returns matches in a list"""
+
+    with conn.cursor() as cur:
+        duplicates = cur.fetchall(f"""SELECT * FROM {table} where {column} = {value};""")
+        return duplicates
 
 
 def add_to_article_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
@@ -53,9 +64,9 @@ def add_to_article_table_from_pandas(conn: connection, df: pd.DataFrame) -> None
 
     with conn.cursor() as cur:
         tuples = df.itertuples() # is this a list?
-        execute_values(cur, """INSERT INTO author (article_url, source, created_at,
-                       author) VALUES %s""", tuples)
-        cur.commit()
+        execute_values(cur, """INSERT INTO author (article_url, source, created_at)
+                       VALUES (%s)""", tuples)
+        conn.commit()
 
 
 def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
@@ -65,22 +76,27 @@ def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -
     with conn.cursor() as cur:
         tuples = df.itertuples() # is this a list?
         execute_values(cur, """INSERT INTO scraping_info (scraped_at, title, body,
-                       article_id) VALUES %s""", tuples)
-        cur.commit()
+                       article_id) VALUES (%s)""", tuples)
+        conn.commit()
 
 # hardcode source
 
-def add_to_authors_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
+def add_to_author_table(conn: connection, author) -> None:
     """Converts df into tuples, then adds to authors table.
     NB: needs article_id column converted into foreign key reference"""
-    pass
+
+    with conn.cursor() as cur:
+        cur.execute(f"""INSERT INTO author (author_name) VALUES ({author});""")
+        conn.commit()
 
 
 if __name__ == "__main__":
     db_conn = get_db_connection()
     df_transformed = pd.read_csv(TRANSFORMED_DATA)
-    print(df_transformed)
 
+    df_no_duplicates = check_for_duplicates_pandas_method(db_conn, df_transformed, \
+                                                "article", "url", "article_url")
+    author = re.findall("'([^']*)'", author)
+    add_to_authors_table(db_conn, df_no_duplicates)
 
-    df_no_duplicates = check_for_duplicates(db_conn, df_transformed, "article", "url", "article_url")
     db_conn.close()
