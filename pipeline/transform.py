@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 from pandas import DataFrame
+TRANSFORMED_DATA = "transformed_data.csv"
 
 
 def get_rss_feed_df(file_path: str) -> DataFrame:
@@ -88,4 +89,4 @@ if __name__ == "__main__":
 
     joined_data = joined_data[["title", "url", "headline", "body", "author", "published"]]
 
-    joined_data.to_csv("transformed_data.csv")
+    joined_data.to_csv(TRANSFORMED_DATA)
