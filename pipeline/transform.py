@@ -103,5 +103,4 @@ if __name__ == "__main__":
 
     joined_data = joined_data[["title", "url", "headline", "body", "source", "author", "published"]]
 
-    print(joined_data["published"])
-    # joined_data.to_csv("transformed_data.csv")
+    joined_data.to_csv("transformed_data.csv")
