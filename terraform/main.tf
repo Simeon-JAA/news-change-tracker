@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "aws_security_group" "c8-news-change-tracker-rds-sg" {
   name = "c8-news-change-tracker-rds-sg"
-  description = "Security group that allows communcation all ports to RDS inbound and outbound"
+  description = "Security group listens on port 5432 inbound and sends all outbound"
   vpc_id = "vpc-0e0f897ec7ddc230d"
   ingress {
     from_port       = 5432
@@ -76,10 +76,32 @@ resource "aws_ecs_task_definition" "c8-news-change-tracker-etl-task-definition" 
     "image": "129033205317.dkr.ecr." + var.REGION + ".amazon.com/" + aws_ecr_repository.c8-news-change-tracker-etl-ecr.name + ":" + aws_ecr_image.c8-news-change-tracker-etl-task-definition.tag,
     "cpu": 1024,
     "memory": 3072,
-    "essential": true
-  }
-]
-
+    "essential": true,
+    "portMappings": [
+      {
+        "containerPort": 80,
+        "hostPort": 5432
+      }
+    ]
+    "environment": [
+      {"name": "DB_NAME",
+       "value": var.CONTAINER_DB_NAME
+      },
+      {"name": "DB_USER",
+      "value": var.CONTAINER_DB_USER
+      },
+      {"name": "DB_PASSWORD",
+      "value": var.CONTAINER_DB_PASSWORD
+      },
+      {"name": "DB_PORT",
+      "value": var.CONTAINER_DB_PORT
+      },
+      {"name": "DB_HOST",
+      "value": var.CONTAINER_DB_HOST
+      }
+    ],
+    }
+  ]
 
   runtime_platform {
     operating_system_family = "WINDOWS_SERVER_2019_CORE"
