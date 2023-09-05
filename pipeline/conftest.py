@@ -3,6 +3,7 @@ import pytest
 
 @pytest.fixture
 def rss_feed():
+    """rss feed dictionary fixture"""
     return {
         "entries" : [
             {
@@ -14,6 +15,7 @@ def rss_feed():
 
 @pytest.fixture
 def bbc_html():
+    """bbc example html fixture"""
     html = "<html>" \
             "<body>" \
                 "<main id=\"main-content\">" \
@@ -35,11 +37,12 @@ def bbc_html():
                 "</main>" \
             "</body>" \
         "</html>"
-    
+
     return html
 
 @pytest.fixture
 def bbc_article_dict():
+    """bbc article returned dict fixture"""
     return {"body" : "text",
             "headline" : "headline",
             "url" : "fakeurl.com",
@@ -48,6 +51,7 @@ def bbc_article_dict():
 
 @pytest.fixture
 def bbc_sport_dict():
+    """bbc sport article returned dict fixture"""
     return {"body" : "text",
             "headline" : "headline",
             "url" : "fakeurl.com",
@@ -55,6 +59,7 @@ def bbc_sport_dict():
 
 @pytest.fixture
 def bbc_sport_html():
+    """bbc sport example html fixture"""
     html = "<html>" \
             "<body>" \
                 "<article>" \
