@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS article (
     article_url TEXT NOT NULL,
     source TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
+    author TEXT NOT NULL,
     PRIMARY KEY (article_id),
     CONSTRAINT check_created_at CHECK (created_at <= NOW()),
     CONSTRAINT check_article_url CHECK (article_url LIKE '%www.%' or article_url LIKE '%WWW.%')
