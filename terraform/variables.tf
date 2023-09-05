@@ -13,3 +13,23 @@ variable "RDS_PASSWORD" {
 variable "RDS_PORT" {
   type = string
 }
+
+variable "CONTAINER_DB_NAME" {
+  type = string
+}
+
+variable "CONTAINER_DB_USER" {
+  type = string
+}
+
+variable "CONTAINER_DB_PASSWORD" {
+  type = string
+}
+
+variable "CONTAINER_DB_PORT" {
+  type = string
+}
+
+variable "CONTAINER_DB_HOST" {
+  type = string
+}
