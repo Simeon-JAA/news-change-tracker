@@ -5,6 +5,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from psycopg2 import connect, OperationalError
 from psycopg2.extensions import connection
+from psycopg2.extras import execute_values
 
 TRANSFORMED_DATA = ""
 
@@ -43,6 +44,27 @@ def check_for_duplicates(conn: connection, df: pd.DataFrame, table: str, column:
 
     return df
 
+
+def add_to_article_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
+    """Converts df into tuples, then adds to article table.
+    NB: needs author column converted into foreign key reference"""
+
+    with conn.cursor() as cur:
+        tuples = df.itertuples() # is this a list?
+        execute_values(cur, """INSERT INTO author (article_url, source, created_at,
+                       author) VALUES %s""", tuples)
+        cur.commit()
+
+
+def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
+    """Converts df into tuples, then adds to scraping_info table.
+    NB: needs article_id column converted into foreign key reference"""
+
+    with conn.cursor() as cur:
+        tuples = df.itertuples() # is this a list?
+        execute_values(cur, """INSERT INTO scraping_info (scraped_at, title, body,
+                       article_id) VALUES %s""", tuples)
+        cur.commit()
 
 
 if __name__ == "__main__":
