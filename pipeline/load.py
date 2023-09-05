@@ -36,15 +36,13 @@ def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
     return pd.DataFrame(result)
 
 
-def check_for_duplicates_pandas_method(conn: connection, df: pd.DataFrame, table: str, \
-                        df_column: str, db_column) -> pd.DataFrame:
-    """Checks a local dataframe against a database table on specific column by downloading
-    to pandas. Returns non-duplicative local data only."""
+def check_for_duplicates(conn: connection, df: pd.DataFrame, table: str, column: str) \
+    -> pd.DataFrame:
+    """Checks a local dataframe against a database table on specific column.
+    Returns non-duplicative local data only"""
     df = df.copy()
     articles = get_data_from_db(conn, table)
-    print(articles)
-    if not articles.empty:
-        df = df[not df[df_column].isin(articles[db_column])]
+    df = df[not df[column].isin(articles[column])]
     # test this line
 
     return df
@@ -91,16 +89,12 @@ def add_to_author_table(conn: connection, authors: pd.DataFrame) -> None:
         conn.commit()
 
 
+
 if __name__ == "__main__":
     db_conn = get_db_connection()
     df_transformed = pd.read_csv(TRANSFORMED_DATA)
+    print(df_transformed)
 
-    df_no_duplicates = check_for_duplicates_pandas_method(db_conn, df_transformed, \
-                                                "article", "url", "article_url")
-    author_df = df_no_duplicates["author"].apply(lambda x: re.findall("'([^']*)'", x))
-    author_df = author_df.explode("author")
-    print(author_df)
 
-    # add_to_authors_table(db_conn, df_no_duplicates)
-
+    df_no_duplicates = check_for_duplicates(db_conn, df_transformed, "article", "article_url")
     db_conn.close()
