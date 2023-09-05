@@ -59,7 +59,31 @@ resource "aws_ecr_repository" "c8-news-change-tracker-etl-ecr" {
   }
 }
 
-data "aws_ecr_image" "c8-news-change--tracker-etl-image" {
+data "aws_ecr_image" "c8-news-change-tracker-etl-image" {
   repository_name = aws_ecr_repository.c8-news-change-tracker-etl-ecr.name
   image_tag       = "latest"
+}
+
+resource "aws_ecs_task_definition" "c8-news-change-tracker-etl-task-definition" {
+  family                   = "c8-news-change-tracker-etl-task-definition"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 1024
+  memory                   = 3072
+  container_definitions    = <<TASK_DEFINITION
+[
+  {
+    "name": "iis",
+    "image": "mcr.microsoft.com/windows/servercore/iis",
+    "cpu": 1024,
+    "memory": 2048,
+    "essential": true
+  }
+]
+TASK_DEFINITION
+
+  runtime_platform {
+    operating_system_family = "WINDOWS_SERVER_2019_CORE"
+    cpu_architecture        = "X86_64"
+  }
 }
