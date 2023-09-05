@@ -7,6 +7,9 @@ from pandas import DataFrame
 TRANSFORMED_DATA = "transformed_data.csv"
 
 
+TRANSFORMED_DATA_CSV = "transformed_data.csv"
+
+
 def get_rss_feed_df(file_path: str) -> DataFrame:
     """Returns the scraped article csv as a DataFrame"""
 
