@@ -17,9 +17,14 @@ CREATE TABLE IF NOT EXISTS article (
 CREATE TABLE IF NOT EXISTS author (
     author_id INT GENERATED ALWAYS AS IDENTITY,
     author_name TEXT NOT NULL,
-    article_id INT NOT NULL,
-    PRIMARY KEY (author_id),
-    FOREIGN KEY (article_id) REFERENCES article (article_id)
+    PRIMARY KEY (author_id)
+);
+
+CREATE TABLE IF NOT EXISTS article_author (
+    article_id INT,
+    author_id INT,
+    FOREIGN KEY (article_id) REFERENCES article(article_id),
+    FOREIGN KEY (author_id) REFERENCES author(author_id)
 );
 
 CREATE TABLE IF NOT EXISTS scraping_info (
