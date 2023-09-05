@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import pandas as pd
+import pytz
 from pandas import DataFrame
 
 
@@ -26,8 +27,8 @@ def format_time_to_timestamp(time_in_col: str) -> datetime:
     """Formats time to timestamp format to load into postgres"""
 
     time_in_col = time_in_col[5:]
-
-    time_in_col = datetime.strptime(time_in_col, "%d %b %Y %H:%M:%S %Z")
+    gmt = pytz.timezone("Europe/London")
+    time_in_col = gmt.localize(datetime.strptime(time_in_col, "%d %b %Y %H:%M:%S %Z"))
 
     return time_in_col
 
