@@ -32,6 +32,17 @@ def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
 
     return pd.DataFrame(result)
 
+
+def check_for_duplicates(conn: connection, df: pd.DataFrame) -> pd.DataFrame:
+    """Checks the incoming articles for duplication in the database. Returns only fresh articles"""
+    df = df.copy()
+    articles = get_data_from_db(conn, "article")
+    df = df[not df["article_url"].isin(articles["article_url"])]
+    # test this line
+
+    return df
+
+
 if __name__ == "__main__":
     conn = get_db_connection()
     print(get_data_from_db(conn, "article", column="article_url, article_id"))
