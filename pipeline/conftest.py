@@ -1,10 +1,8 @@
 """Pytest fixtures file"""
 import pytest
-import pandas as pd
 
 @pytest.fixture
 def rss_feed():
-    """rss feed dictionary fixture"""
     return {
         "entries" : [
             {
@@ -16,7 +14,6 @@ def rss_feed():
 
 @pytest.fixture
 def bbc_html():
-    """bbc example html fixture"""
     html = "<html>" \
             "<body>" \
                 "<main id=\"main-content\">" \
@@ -38,12 +35,11 @@ def bbc_html():
                 "</main>" \
             "</body>" \
         "</html>"
-
+    
     return html
 
 @pytest.fixture
 def bbc_article_dict():
-    """bbc article returned dict fixture"""
     return {"body" : "text",
             "headline" : "headline",
             "url" : "fakeurl.com",
@@ -52,7 +48,6 @@ def bbc_article_dict():
 
 @pytest.fixture
 def bbc_sport_dict():
-    """bbc sport article returned dict fixture"""
     return {"body" : "text",
             "headline" : "headline",
             "url" : "fakeurl.com",
@@ -60,7 +55,6 @@ def bbc_sport_dict():
 
 @pytest.fixture
 def bbc_sport_html():
-    """bbc sport example html fixture"""
     html = "<html>" \
             "<body>" \
                 "<article>" \
@@ -78,27 +72,3 @@ def bbc_sport_html():
             "</body>" \
         "</html>"
     return html
-
-@pytest.fixture
-def mock_dataframe():
-    """Fixture for raw dataframe"""
-    return pd.DataFrame([{
-        "id": "https://www.bbc.co.uk/news/uk-politics-66707569	",
-        "published": "Mon, 04 Sep 2023 12:02:28 GMT",
-        "title": "Angela Rayner handed new role"
-    }])
-
-@pytest.fixture
-def mock_scraped_df():
-    """Fixture for scraped article dataframe"""
-    return pd.DataFrame([{
-        "author" : "By Scooby & Shaggy and Scrappy",
-        "headline" : "headline1",
-        "url" : "realurl.com ",
-        "body" : "body1"},
-        {
-        "author" : "NaN",
-        "headline" : "headline2",
-        "url" : " realurl.com",
-        "body" : "body2"
-        }])
