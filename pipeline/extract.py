@@ -4,6 +4,7 @@ import feedparser
 from feedparser.util import FeedParserDict
 from bs4 import BeautifulSoup as bs
 import pandas as pd
+import re
 
 RSS_FEED = "https://feeds.bbci.co.uk/news/rss.xml?edition=uk#"
 
@@ -24,7 +25,7 @@ def extract_urls(feed: FeedParserDict) -> list:
     return [entry["id"] for entry in feed.entries]
 
 
-def scrape_article(article_url: str)->dict:
+def scrape_article(article_url: str) -> dict:
     """For a given url, scrape relevant data using BS4, return as a dict"""
     article_dict = {}
 
@@ -35,19 +36,23 @@ def scrape_article(article_url: str)->dict:
     if body is not None:
         relevant_divs = body.findAll('div', attrs={"data-component": "text-block"})
         text = " ".join(div.find('p').text for div in relevant_divs)
+        author = body.find('div', attrs= {"class": re.compile(".*TextContributorName")})
     else:
         body = soup.find('article')
         if body:
             text = " ".join([p.text for p in body.findAll('p')])
+            author = body.find('div', attrs= {"class": re.compile(".*TextContributorName")})
+
 
     article_dict["body"] = text
     article_dict["headline"] = headline
     article_dict["url"] = article_url
+    article_dict["author"] = getattr(author, "text", None)
 
     return article_dict
 
 
-def scrape_all_articles(urls:list)->pd.DataFrame:
+def scrape_all_articles(urls: list) -> pd.DataFrame:
     """Scrapes article data from a list of URLs and returns a dataframe"""
     article_list = []
     for url in urls:
@@ -57,9 +62,12 @@ def scrape_all_articles(urls:list)->pd.DataFrame:
                 article_list.append(article)
             else:
                 continue
-        except:
-            continue
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt("Stopped by user")
+        except Exception as exc:
+            print(exc)
     return pd.DataFrame(article_list)
+
 
 if __name__ == "__main__":
     rss_feed = read_feed(RSS_FEED)
@@ -67,7 +75,6 @@ if __name__ == "__main__":
 
     article_urls = extract_urls(rss_feed)
     articles = scrape_all_articles(article_urls)
-
 
     articles.to_csv("scraped_articles.csv", index=False)
     rss_df.to_csv("rss_feed.csv", index=False)
