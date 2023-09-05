@@ -58,25 +58,10 @@ def format_authors(authors: str) -> str | None :
         return authors
 
 
-def get_source(source: str) -> str:
-    """Returns source for given input"""
-
-    sources = {"bbc": "BBC",
-               "thesundaily": "The Sun"}
-
-    for possible_source in list(sources.keys()):
-        if possible_source in source:
-            return sources[possible_source]
-
-    return "Unknown"
-
-
 def format_scraped_articles_df(scraped_articles_df: DataFrame) -> DataFrame:
     """Formats scraped_articles dataframe columns before saving to csv df"""
 
     scraped_articles_df["url"] = scraped_articles_df["url"].apply(lambda url: url.strip())
-    scraped_articles_df["source"] = scraped_articles_df["url"]
-    scraped_articles_df["source"] = scraped_articles_df["source"].apply(get_source)
 
     scraped_articles_df["author"] = scraped_articles_df["author"].apply(lambda authors:
                                                                         str(authors))
@@ -101,6 +86,6 @@ if __name__ == "__main__":
                             right_on="id",
                             how="inner")
 
-    joined_data = joined_data[["title", "url", "headline", "body", "source", "author", "published"]]
+    joined_data = joined_data[["title", "url", "headline", "body", "author", "published"]]
 
     joined_data.to_csv("transformed_data.csv")
