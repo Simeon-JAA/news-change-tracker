@@ -25,9 +25,9 @@ def get_scraped_articles_df(file_path: str) -> DataFrame:
 def format_time_to_timestamp(time_in_col: str) -> datetime:
     """Formats time to timestamp format to load into postgres"""
 
-    time_in_col = time_in_col[5:-4]
+    time_in_col = time_in_col[5:]
 
-    time_in_col = datetime.strptime(time_in_col, "%d %b %Y %H:%M:%S")
+    time_in_col = datetime.strptime(time_in_col, "%d %b %Y %H:%M:%S %Z")
 
     return time_in_col
 
