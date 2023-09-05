@@ -15,6 +15,14 @@ CREATE TABLE IF NOT EXISTS article (
     CONSTRAINT check_article_url CHECK (article_url LIKE '%www.%' or article_url LIKE '%WWW.%')
 );
 
+CREATE TABLE IF NOT EXISTS author (
+    author_id INT GENERATED ALWAYS AS IDENTITY,
+    author_name TEXT NOT NULL,
+    article_id INT NOT NULL,
+    PRIMARY KEY (author_id),
+    FOREIGN KEY (article_id) REFERENCES article (article_id)
+);
+
 CREATE TABLE IF NOT EXISTS scraping_info (
     scraping_info_id INT GENERATED ALWAYS AS IDENTITY,
     scraped_at TIMESTAMPTZ NOT NULL,
