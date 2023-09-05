@@ -70,6 +70,28 @@ def format_scraped_articles_df(scraped_articles_df: DataFrame) -> DataFrame:
     return scraped_articles_df
 
 
+def transform_data() -> None:
+    """Whole process of transforming data"""
+
+    rss_feed_df = get_rss_feed_df("rss_feed.csv")
+
+    rss_feed_df = format_rss_feed_df(rss_feed_df)
+
+    scraped_article_df = get_scraped_articles_df("scraped_articles.csv")
+
+    scraped_article_df = format_scraped_articles_df(scraped_article_df)
+
+    joined_data = pd.merge(left=scraped_article_df,
+                            right=rss_feed_df,
+                            left_on="url",
+                            right_on="id",
+                            how="inner")
+
+    joined_data = joined_data[["title", "url", "headline", "body", "author", "published"]]
+
+    joined_data.to_csv("transformed_data.csv")
+
+
 if __name__ == "__main__":
 
     rss_feed_df = get_rss_feed_df("rss_feed.csv")
