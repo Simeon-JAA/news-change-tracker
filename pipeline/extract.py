@@ -71,7 +71,19 @@ def scrape_all_articles(urls: list) -> pd.DataFrame:
     return pd.DataFrame(article_list)
 
 
+def extract_data() -> None:
+    """Whole extract process"""
+    rss_feed = read_feed(RSS_FEED)
+    rss_df = transform_to_pandas(rss_feed)
+
+    article_urls = extract_urls(rss_feed)
+    articles = scrape_all_articles(article_urls)
+
+    articles.to_csv(SCRAPED_ARTICLES, index=False)
+    rss_df.to_csv(RSS_FEED_CSV, index=False)
+    
 if __name__ == "__main__":
+
     rss_feed = read_feed(RSS_FEED)
     rss_df = transform_to_pandas(rss_feed)
 
