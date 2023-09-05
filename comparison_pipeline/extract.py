@@ -15,9 +15,6 @@ def get_db_connection() -> Connection:
                    password=environ["DB_PASSWORD"],
                    port=environ["DB_PORT"],
                    dbname=environ["DB_NAME"])
-    except OperationalError:
-        print("Failed to connect to database.")
-        raise OperationalError()
     except Exception as exc:
         print(f"get_db_connection Error: {exc}")
         raise Exception()

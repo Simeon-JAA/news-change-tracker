@@ -7,6 +7,8 @@ import pandas as pd
 import re
 
 RSS_FEED = "https://feeds.bbci.co.uk/news/rss.xml?edition=uk#"
+SCRAPED_ARTICLES = "scraped_articles.csv"
+RSS_FEED_CSV = "rss_feed.csv"
 
 
 def read_feed(feed: str):
@@ -76,5 +78,5 @@ if __name__ == "__main__":
     article_urls = extract_urls(rss_feed)
     articles = scrape_all_articles(article_urls)
 
-    articles.to_csv("scraped_articles.csv", index=False)
-    rss_df.to_csv("rss_feed.csv", index=False)
+    articles.to_csv(SCRAPED_ARTICLES, index=False)
+    rss_df.to_csv(RSS_FEED_CSV, index=False)
