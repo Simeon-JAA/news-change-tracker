@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from psycopg2 import connect, OperationalError
 from psycopg2.extensions import connection
 
+TRANSFORMED_DATA = ""
+
 def get_db_connection() -> connection:
     """Returns connection to the rds database"""
     load_dotenv()
@@ -33,5 +35,5 @@ def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
 if __name__ == "__main__":
     conn = get_db_connection()
     print(get_data_from_db(conn, "article", column="article_url, article_id"))
-
+    df = pd.read_csv(TRANSFORMED_DATA)
     conn.close()
