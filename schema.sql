@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS author (
 );
 
 CREATE TABLE IF NOT EXISTS article_author (
-    article_author_id INT ALWAYS GENERATED AS IDENTITY,
+    article_author_id INT GENERATED ALWAYS AS IDENTITY,
     article_id INT,
     author_id INT,
     FOREIGN KEY (article_id) REFERENCES article(article_id),
