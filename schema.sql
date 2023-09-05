@@ -9,10 +9,22 @@ CREATE TABLE IF NOT EXISTS article (
     article_url TEXT NOT NULL,
     source TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    author TEXT,
     PRIMARY KEY (article_id),
     CONSTRAINT check_created_at CHECK (created_at <= NOW()),
     CONSTRAINT check_article_url CHECK (article_url LIKE '%www.%' or article_url LIKE '%WWW.%')
+);
+
+CREATE TABLE IF NOT EXISTS author (
+    author_id INT GENERATED ALWAYS AS IDENTITY,
+    author_name TEXT NOT NULL,
+    PRIMARY KEY (author_id)
+);
+
+CREATE TABLE IF NOT EXISTS article_author (
+    article_id INT,
+    author_id INT,
+    FOREIGN KEY (article_id) REFERENCES article(article_id),
+    FOREIGN KEY (author_id) REFERENCES author(author_id)
 );
 
 CREATE TABLE IF NOT EXISTS scraping_info (
