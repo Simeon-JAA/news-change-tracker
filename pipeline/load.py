@@ -71,7 +71,7 @@ def check_for_duplicate_authors(conn: connection, name: str) -> str:
     return name
 
 
-def add_to_article_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
+def add_to_article_table(conn: connection, df: pd.DataFrame) -> None:
     """Converts df into tuples, then adds to article table.
     NB: needs author column converted into foreign key reference"""
 
@@ -82,17 +82,24 @@ def add_to_article_table_from_pandas(conn: connection, df: pd.DataFrame) -> None
         conn.commit()
 
 
-def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
+def add_to_scraping_info_table(conn: connection, df: pd.DataFrame) -> None:
     """Converts df into tuples, then adds to scraping_info table.
     NB: needs article_id column converted into foreign key reference"""
 
     with conn.cursor() as cur:
-        tuples = df.to_records() # is this a list?
+        tuples = df.to_records(index=False)
         execute_values(cur, """INSERT INTO scraping_info (scraped_at, title, body,
-                       article_id) VALUES (%s)""", tuples)
+                       article_id) VALUES %s""", tuples)
         conn.commit()
 
-# hardcode source
+def retrieve_author_id(conn: connection, name: str) -> str:
+    """Retrieves author_id from author table."""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT author_id from author where author_name = %s""", name)
+        name = cur.fetchone()
+        return name
+
 
 def add_to_author_table(conn: connection, df: pd.DataFrame) -> None:
     """Converts df into tuples, then adds to authors table.
@@ -117,7 +124,7 @@ def load_data():
     # inserts articles
     df_for_article = df_transformed[["url", "author", "published"]].copy()
     df_for_article["author"] = "BBC"
-    add_to_article_table_from_pandas(db_conn, df_for_article)
+    add_to_article_table(db_conn, df_for_article)
     print(df_for_article)
 
     # inserts authors
@@ -129,6 +136,12 @@ def load_data():
     df_for_author = df_for_author.dropna()
     add_to_author_table(db_conn, df_for_author)
     print(df_for_author)
+
+    # inserts article-author table entries
+    df_author_article = df_transformed[["url", "author"]].copy()
+    df_author_article = df_author_article.explode(column=["author"]).dropna()
+    df_author_article["author"] = df_author_article["author"].apply\
+        (lambda x: retrieve_author_id(db_conn, x))
 
     db_conn.close()
 
