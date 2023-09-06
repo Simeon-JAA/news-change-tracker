@@ -28,13 +28,13 @@ CREATE TABLE IF NOT EXISTS article_author (
     FOREIGN KEY (author_id) REFERENCES author(author_id)
 );
 
-CREATE TABLE IF NOT EXISTS scraping_info (
-    scraping_info_id INT GENERATED ALWAYS AS IDENTITY,
+CREATE TABLE IF NOT EXISTS article_version (
+    article_version_id INT GENERATED ALWAYS AS IDENTITY,
     scraped_at TIMESTAMPTZ NOT NULL,
     heading TEXT NOT NULL,
     body TEXT NOT NULL,
     article_id INT NOT NULL,
-    PRIMARY KEY(scraping_info_id),
+    PRIMARY KEY(article_version_id),
     FOREIGN KEY (article_id) REFERENCES article(article_id),
     CONSTRAINT check_scraped_at CHECK (scraped_at <= NOW())
 );
