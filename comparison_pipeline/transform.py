@@ -20,7 +20,7 @@ def format_authors(authors: str) -> list[str]:
         return ["No Author"]
 
     if authors[:3].lower() == "by ":
-        authors = authors.lower().replace("by ", "").replace(" &", ",")
+        authors = authors.lower().replace("by ", "", 1).replace(" &", ",")
         authors = authors.replace(" and", ",")
         authors = authors.split(", ")
 
