@@ -6,7 +6,8 @@ import pandas as pd
 import pytz
 from pandas import DataFrame
 
-
+RSS_FEED_DATA = "rss_feed.csv"
+SCRAPED_DATA = "scraped_articles.csv"
 TRANSFORMED_DATA_CSV = "transformed_data.csv"
 
 
@@ -53,14 +54,13 @@ def format_authors(authors: str) -> str | None :
         return None
 
     if authors[:3].lower() == "by ":
-        authors = authors.lower().replace("by ", "", 1)
-    authors = authors.replace(" &", ",")
-    authors = authors.replace(" and", ",")
-    authors = authors.split(", ")
+        authors = authors.lower().replace("by ", "").replace(" &", ",")
+        authors = authors.replace(" and", ",")
+        authors = authors.split(", ")
 
-    authors = list(map(lambda author: author.title(), authors))
-    
-    return authors
+        authors = list(map(lambda author: author.title(), authors))
+
+        return authors
 
 
 def format_scraped_articles_df(scraped_articles_df: DataFrame) -> DataFrame:
@@ -99,11 +99,11 @@ def transform_data() -> None:
 
 if __name__ == "__main__":
 
-    rss_feed_df = get_rss_feed_df("rss_feed.csv")
+    rss_feed_df = get_rss_feed_df(RSS_FEED_DATA)
 
     rss_feed_df = format_rss_feed_df(rss_feed_df)
 
-    articles_df = get_scraped_articles_df("scraped_articles.csv")
+    articles_df = get_scraped_articles_df(SCRAPED_DATA)
 
     articles_df = format_scraped_articles_df(articles_df)
 
@@ -115,4 +115,4 @@ if __name__ == "__main__":
 
     joined_data = joined_data[["title", "url", "headline", "body", "author", "published"]]
 
-    joined_data.to_csv("transformed_data.csv")
+    joined_data.to_csv(TRANSFORMED_DATA_CSV)
