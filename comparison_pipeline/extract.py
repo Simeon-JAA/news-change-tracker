@@ -2,9 +2,9 @@
 
 from os import environ
 
+import re
 import pandas as pd
 import requests
-import re
 from bs4 import BeautifulSoup as bs
 from dotenv import load_dotenv
 from psycopg2 import connect, OperationalError
@@ -28,19 +28,6 @@ def get_db_connection() -> connection:
     except Exception as exc:
         print(f"get_db_connection Error: {exc}")
         raise Exception()
-
-
-def get_data_from_db(conn: connection, table: str)-> pd.DataFrame:
-    """Connects to the database and returns dataframe of selected table"""
-
-    with conn.cursor() as cur:
-        try:
-            cur.execute("""SELECT * FROM %s;""", [table])
-            result = cur.fetchall()
-        except (ConnectionError, OperationalError) as err:
-            err("Error: Unable to retrieve data from database")
-
-    return pd.DataFrame(result)
 
 
 def get_urls_from_article_table(conn: connection)-> list[str]:
@@ -98,9 +85,9 @@ def scrape_all_articles(list_of_urls: list[str]) -> pd.DataFrame:
             raise KeyboardInterrupt("Stopped by user")
         except Exception as exc:
             print(exc)
-            
+
         article_list.append(article)
-    
+
     return pd.DataFrame(article_list)
 
 
@@ -109,9 +96,9 @@ def extract_data() -> None:
 
     conn = get_db_connection()
 
-    list_of_urls = get_urls_from_article_table(conn)
+    url_list = get_urls_from_article_table(conn)
 
-    scraped_article_information = scrape_all_articles(list_of_urls)
+    scraped_article_information = scrape_all_articles(url_list)
 
     scraped_article_information.to_csv(SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
 
@@ -122,10 +109,10 @@ if __name__ == "__main__":
 
     conn = get_db_connection()
 
-    list_of_urls = get_urls_from_article_table(conn)
+    url_list = get_urls_from_article_table(conn)
 
-    scraped_article_information = scrape_all_articles(list_of_urls)
+    scraped_article_information = scrape_all_articles(url_list)
 
     scraped_article_information.to_csv(SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
-    
+
     conn.close()
