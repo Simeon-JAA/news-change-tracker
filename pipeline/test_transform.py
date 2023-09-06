@@ -38,8 +38,8 @@ def test_format_authors_removes_extras():
 
 def test_format_authors_only_names():
     """Tests that author list is returned when columns does not start 'By ' """
-    result = format_authors("Velma and Daphne")
-    assert result == ["Velma", "Daphne"]
+    result = format_authors("Velma and Daphne & Fred")
+    assert result == ["Velma", "Daphne", "Fred"]
 
 
 def test_format_scraped_articles_strips_URL(mock_scraped_df):
