@@ -77,11 +77,11 @@ if __name__ == "__main__":
 
     rss_feed_df = format_rss_feed_df(rss_feed_df)
 
-    scraped_article_df = get_scraped_articles_df("scraped_articles.csv")
+    articles_df = get_scraped_articles_df("scraped_articles.csv")
 
-    scraped_article_df = format_scraped_articles_df(scraped_article_df)
+    articles_df = format_scraped_articles_df(articles_df)
 
-    joined_data = pd.merge(left=scraped_article_df,
+    joined_data = pd.merge(left=articles_df,
                             right=rss_feed_df,
                             left_on="url",
                             right_on="id",

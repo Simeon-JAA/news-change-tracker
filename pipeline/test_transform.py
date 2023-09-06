@@ -47,9 +47,3 @@ def test_format_scraped_articles_strips_URL(mock_scraped_df):
     result = format_scraped_articles_df(mock_scraped_df)
     assert isinstance(result, pd.DataFrame)
     assert result["url"][0] == "realurl.com"
-
-
-
-
-
-
