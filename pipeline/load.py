@@ -27,6 +27,18 @@ def get_db_connection() -> connection:
     return None
 
 
+def get_connected_locally():
+    load_dotenv()
+    conn = connect(\
+    user = environ["LOCAL_USER"],
+    host = environ["LOCAL_IP"],
+    password = environ["LOCAL_PASSWORD"],
+    port = environ["DB_PORT"],
+    database = environ["DB_NAME"])
+    return conn
+
+
+
 def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
     """Connects to the database and returns dataframe of selected table and column(s)"""
     with conn.cursor() as cur:
@@ -36,24 +48,26 @@ def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
     return pd.DataFrame(result)
 
 
-def check_for_duplicates(conn: connection, df: pd.DataFrame, table: str, column: str) \
-    -> pd.DataFrame:
-    """Checks a local dataframe against a database table on specific column.
-    Returns non-duplicative local data only"""
-    df = df.copy()
-    articles = get_data_from_db(conn, table)
-    df = df[not df[column].isin(articles[column])]
-    # test this line
-
-    return df
-
-
-def check_for_duplicates_sql_method(conn: connection, table: str, column: str, value: str) -> list:
-    """Checks for a duplicate in the specified table and column. Returns matches in a list"""
+def check_for_duplicate_articles(conn: connection, url: str) -> str:
+    """Checks for a duplicates in article table. Returns a dataframe without duplicates."""
 
     with conn.cursor() as cur:
-        duplicates = cur.fetchall(f"""SELECT * FROM {table} where {column} = {value};""")
-        return duplicates
+        cur.execute("""SELECT * FROM article where article_url = %s;""", [url])
+        duplicate = cur.fetchall()
+        if len(duplicate) > 0:
+            return None
+    return url
+
+
+def check_for_duplicate_authors(conn: connection, name: str) -> str:
+    """Checks for a duplicates in author table. Returns a dataframe without duplicates."""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT * FROM author where author_name = %s;""", [name])
+        duplicate = cur.fetchall()
+        if len(duplicate) > 0:
+            return None
+    return name
 
 
 def add_to_article_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
@@ -61,9 +75,9 @@ def add_to_article_table_from_pandas(conn: connection, df: pd.DataFrame) -> None
     NB: needs author column converted into foreign key reference"""
 
     with conn.cursor() as cur:
-        tuples = df.itertuples() # is this a list?
-        execute_values(cur, """INSERT INTO author (article_url, source, created_at)
-                       VALUES (%s)""", tuples)
+        tuples = df.to_records(index=False)
+        execute_values(cur, """INSERT INTO article (article_url, source, created_at)
+                       VALUES %s;""", tuples)
         conn.commit()
 
 
@@ -72,7 +86,7 @@ def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -
     NB: needs article_id column converted into foreign key reference"""
 
     with conn.cursor() as cur:
-        tuples = df.itertuples() # is this a list?
+        tuples = df.to_records() # is this a list?
         execute_values(cur, """INSERT INTO scraping_info (scraped_at, title, body,
                        article_id) VALUES (%s)""", tuples)
         conn.commit()
@@ -85,16 +99,38 @@ def add_to_author_table(conn: connection, authors: pd.DataFrame) -> None:
 
     with conn.cursor() as cur:
         tuples = authors.itertuples()
-        execute_values(cur, """INSERT INTO author (author_name) VALUES (%s);""", tuples)
+        execute_values(cur, """INSERT INTO author (author_name) VALUES %s;""", tuples)
         conn.commit()
 
 
-
-if __name__ == "__main__":
-    db_conn = get_db_connection()
+def load_data():
+    """Complete data loading in one function. Used for main.py"""
+    db_conn = get_connected_locally()
+    print(db_conn)
     df_transformed = pd.read_csv(TRANSFORMED_DATA)
     print(df_transformed)
 
+    # removes duplicates
+    df_transformed["url"] = df_transformed["url"].apply\
+        (lambda x: check_for_duplicate_articles(db_conn, x))
+    df_transformed = df_transformed.dropna(subset=["url"])
+
+    # inserts articles
+    # df_for_article = df_transformed[["url", "author", "published"]].copy()
+    # df_for_article["author"] = "BBC"
+    # add_to_article_table_from_pandas(db_conn, df_for_article)
+
+    # inserts authors
+    df_for_author = df_transformed[["author"]].copy()
+    df_for_author["author"] = df_for_author["author"].apply(lambda x: re.findall("'([^']*)'", x))
+    df_for_author = df_for_author.explode(column=["author"]).dropna()
+    df_for_author["author"] = df_for_author["author"].apply(lambda x: check_for_duplicate_authors(db_conn, x))
+    add_to_author_table(db_conn, df_for_author)
 
     df_no_duplicates = check_for_duplicates(db_conn, df_transformed, "article", "article_url")
     db_conn.close()
+
+
+if __name__ == "__main__":
+    load_data()
+
