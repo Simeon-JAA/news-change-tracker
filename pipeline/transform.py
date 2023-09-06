@@ -4,9 +4,9 @@ from datetime import datetime
 
 import pandas as pd
 from pandas import DataFrame
-TRANSFORMED_DATA = "transformed_data.csv"
 
-
+RSS_FEED_DATA = "rss_feed.csv"
+SCRAPED_DATA = "scraped_articles.csv"
 TRANSFORMED_DATA_CSV = "transformed_data.csv"
 
 
@@ -100,11 +100,11 @@ def transform_data() -> None:
 
 if __name__ == "__main__":
 
-    rss_feed_df = get_rss_feed_df("rss_feed.csv")
+    rss_feed_df = get_rss_feed_df(RSS_FEED_DATA)
 
     rss_feed_df = format_rss_feed_df(rss_feed_df)
 
-    scraped_article_df = get_scraped_articles_df("scraped_articles.csv")
+    scraped_article_df = get_scraped_articles_df(SCRAPED_DATA)
 
     scraped_article_df = format_scraped_articles_df(scraped_article_df)
 
@@ -116,4 +116,4 @@ if __name__ == "__main__":
 
     joined_data = joined_data[["title", "url", "headline", "body", "author", "published"]]
 
-    joined_data.to_csv(TRANSFORMED_DATA)
+    joined_data.to_csv(TRANSFORMED_DATA_CSV)
