@@ -71,8 +71,6 @@ def format_scraped_articles_df(scraped_articles_df: DataFrame) -> DataFrame:
                                                                         str(authors))
     scraped_articles_df["author"] = scraped_articles_df["author"].apply(format_authors)
 
-    scraped_articles_df["author"] = scraped_articles_df["author"].fillna("No Author")
-
     return scraped_articles_df
 
 

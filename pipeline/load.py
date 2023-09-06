@@ -39,7 +39,6 @@ def get_connected_locally():
     return conn
 
 
-
 def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
     """Connects to the database and returns dataframe of selected table and column(s)"""
     with conn.cursor() as cur:
@@ -82,6 +81,16 @@ def add_to_article_table(conn: connection, df: pd.DataFrame) -> None:
         conn.commit()
 
 
+def add_to_article_author_table(conn: connection, df: pd.DataFrame) -> None:
+    """Converts df into tuples, then adds to author_article table.
+    NB: needs author and article columns converted into foreign key reference"""
+
+    with conn.cursor() as cur:
+        tuples = df.to_records(index=False)
+        execute_values(cur, """INSERT INTO article_author (article_id, author_id)
+                       VALUES %s;""", tuples)
+        conn.commit()
+
 def add_to_scraping_info_table(conn: connection, df: pd.DataFrame) -> None:
     """Converts df into tuples, then adds to scraping_info table.
     NB: needs article_id column converted into foreign key reference"""
@@ -92,13 +101,27 @@ def add_to_scraping_info_table(conn: connection, df: pd.DataFrame) -> None:
                        article_id) VALUES %s""", tuples)
         conn.commit()
 
+
 def retrieve_author_id(conn: connection, name: str) -> str:
     """Retrieves author_id from author table."""
 
     with conn.cursor() as cur:
-        cur.execute("""SELECT author_id from author where author_name = %s""", name)
-        name = cur.fetchone()
-        return name
+        cur.execute("""SELECT author_id from author where author_name = %s""", [name])
+        author_id = cur.fetchall()
+        if len(author_id) == 1:
+            return author_id[0][0]
+    return None
+
+
+def retrieve_article_id(conn: connection, url: str) -> str:
+    """Retrieves author_id from author table."""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT article_id from article where article_url = %s""", [url])
+        url = cur.fetchall()
+        if len(url) == 1:
+            return url[0][0]
+    return None
 
 
 def add_to_author_table(conn: connection, df: pd.DataFrame) -> None:
@@ -125,23 +148,29 @@ def load_data():
     df_for_article = df_transformed[["url", "author", "published"]].copy()
     df_for_article["author"] = "BBC"
     add_to_article_table(db_conn, df_for_article)
-    print(df_for_article)
 
     # inserts authors
-    df_for_author = df_transformed[["author"]].copy()
+    df_for_author = df_transformed[["author"]].copy().dropna()
     df_for_author["author"] = df_for_author["author"].apply(lambda x: re.findall("'([^']*)'", x))
     df_for_author = df_for_author.explode(column=["author"]).dropna()
+    df_for_author = df_for_author.drop_duplicates(subset=["author"])
     df_for_author["author"] = df_for_author["author"].apply\
         (lambda x: check_for_duplicate_authors(db_conn, x))
     df_for_author = df_for_author.dropna()
+    df_for_author.to_csv("author.csv")
     add_to_author_table(db_conn, df_for_author)
-    print(df_for_author)
 
     # inserts article-author table entries
-    df_author_article = df_transformed[["url", "author"]].copy()
+    df_author_article = df_transformed[["url", "author"]].copy().dropna()
+    df_author_article["author"] = df_author_article["author"].apply(lambda x: re.findall("'([^']*)'", x))
     df_author_article = df_author_article.explode(column=["author"]).dropna()
+    df_author_article.to_csv("author_article.csv")
+    df_author_article["url"] = df_author_article["url"].apply\
+        (lambda x: retrieve_article_id(db_conn, x)).map(str)
     df_author_article["author"] = df_author_article["author"].apply\
-        (lambda x: retrieve_author_id(db_conn, x))
+        (lambda x: retrieve_author_id(db_conn, x)).map(str)
+    print(df_author_article.info())
+    add_to_article_author_table(db_conn, df_author_article)
 
     db_conn.close()
 
