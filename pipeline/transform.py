@@ -54,14 +54,13 @@ def format_authors(authors: str) -> str | None :
         return None
 
     if authors[:3].lower() == "by ":
-        authors = authors.lower().replace("by ", "", 1)
-    authors = authors.replace(" &", ",")
-    authors = authors.replace(" and", ",")
-    authors = authors.split(", ")
+        authors = authors.lower().replace("by ", "").replace(" &", ",")
+        authors = authors.replace(" and", ",")
+        authors = authors.split(", ")
 
-    authors = list(map(lambda author: author.title(), authors))
-    
-    return authors
+        authors = list(map(lambda author: author.title(), authors))
+
+        return authors
 
 
 def format_scraped_articles_df(scraped_articles_df: DataFrame) -> DataFrame:
