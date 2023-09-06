@@ -81,12 +81,13 @@ def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -
 
 # hardcode source
 
-def add_to_author_table(conn: connection, author) -> None:
+def add_to_author_table(conn: connection, authors: pd.DataFrame) -> None:
     """Converts df into tuples, then adds to authors table.
     NB: needs article_id column converted into foreign key reference"""
 
     with conn.cursor() as cur:
-        cur.execute(f"""INSERT INTO author (author_name) VALUES ({author});""")
+        tuples = authors.itertuples()
+        execute_values(cur, """INSERT INTO author (author_name) VALUES (%s);""", tuples)
         conn.commit()
 
 
@@ -96,7 +97,10 @@ if __name__ == "__main__":
 
     df_no_duplicates = check_for_duplicates_pandas_method(db_conn, df_transformed, \
                                                 "article", "url", "article_url")
-    author = re.findall("'([^']*)'", author)
-    add_to_authors_table(db_conn, df_no_duplicates)
+    author_df = df_no_duplicates["author"].apply(lambda x: re.findall("'([^']*)'", x))
+    author_df = author_df.explode("author")
+    print(author_df)
+
+    # add_to_authors_table(db_conn, df_no_duplicates)
 
     db_conn.close()
