@@ -1,8 +1,8 @@
 """Extraction file for comparison pipeline"""
 
 from os import environ
-
 import re
+
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup as bs
