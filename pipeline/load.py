@@ -28,6 +28,7 @@ def get_db_connection() -> connection:
 
 
 def get_connected_locally():
+    """Connectivity function for local database"""
     load_dotenv()
     conn = connect(\
     user = environ["LOCAL_USER"],
@@ -93,12 +94,12 @@ def add_to_scraping_info_table_from_pandas(conn: connection, df: pd.DataFrame) -
 
 # hardcode source
 
-def add_to_author_table(conn: connection, authors: pd.DataFrame) -> None:
+def add_to_author_table(conn: connection, df: pd.DataFrame) -> None:
     """Converts df into tuples, then adds to authors table.
     NB: needs article_id column converted into foreign key reference"""
 
     with conn.cursor() as cur:
-        tuples = authors.itertuples()
+        tuples = df.to_records(index=False)
         execute_values(cur, """INSERT INTO author (author_name) VALUES %s;""", tuples)
         conn.commit()
 
@@ -106,9 +107,7 @@ def add_to_author_table(conn: connection, authors: pd.DataFrame) -> None:
 def load_data():
     """Complete data loading in one function. Used for main.py"""
     db_conn = get_connected_locally()
-    print(db_conn)
     df_transformed = pd.read_csv(TRANSFORMED_DATA)
-    print(df_transformed)
 
     # removes duplicates
     df_transformed["url"] = df_transformed["url"].apply\
@@ -116,21 +115,23 @@ def load_data():
     df_transformed = df_transformed.dropna(subset=["url"])
 
     # inserts articles
-    # df_for_article = df_transformed[["url", "author", "published"]].copy()
-    # df_for_article["author"] = "BBC"
-    # add_to_article_table_from_pandas(db_conn, df_for_article)
+    df_for_article = df_transformed[["url", "author", "published"]].copy()
+    df_for_article["author"] = "BBC"
+    add_to_article_table_from_pandas(db_conn, df_for_article)
+    print(df_for_article)
 
     # inserts authors
     df_for_author = df_transformed[["author"]].copy()
     df_for_author["author"] = df_for_author["author"].apply(lambda x: re.findall("'([^']*)'", x))
     df_for_author = df_for_author.explode(column=["author"]).dropna()
-    df_for_author["author"] = df_for_author["author"].apply(lambda x: check_for_duplicate_authors(db_conn, x))
+    df_for_author["author"] = df_for_author["author"].apply\
+        (lambda x: check_for_duplicate_authors(db_conn, x))
+    df_for_author = df_for_author.dropna()
     add_to_author_table(db_conn, df_for_author)
+    print(df_for_author)
 
-    df_no_duplicates = check_for_duplicates(db_conn, df_transformed, "article", "article_url")
     db_conn.close()
 
 
 if __name__ == "__main__":
     load_data()
-
