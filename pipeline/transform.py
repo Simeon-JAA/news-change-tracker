@@ -54,10 +54,9 @@ def format_authors(authors: str) -> str | None :
         return None
 
     if authors[:3].lower() == "by ":
-        authors = authors.lower().replace("by ", "", 1)
-    authors = authors.replace(" &", ",")
-    authors = authors.replace(" and", ",")
-    authors = authors.split(", ")
+        authors = authors.lower().replace("by ", "", 1).replace(" &", ",")
+        authors = authors.replace(" and", ",")
+        authors = authors.split(", ")
 
     authors = list(map(lambda author: author.title(), authors))
 
