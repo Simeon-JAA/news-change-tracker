@@ -5,7 +5,7 @@ Tests transform.py functionality
 from datetime import datetime
 import pytz
 import pandas as pd
-from transform import format_time_to_timestamp, format_rss_feed_df, format_authors
+from transform import format_time_to_timestamp, format_rss_feed_df, format_authors, format_scraped_articles_df
 from conftest import mock_dataframe, mock_scraped_df
 
 def test_format_timestamp():
@@ -30,13 +30,26 @@ def test_format_authors_return_none():
     assert result is None
 
 
-def test_format_authors_return_none():
-    """tests that function returns none if author is NaN"""
-    result = format_authors("NaN")
-    assert result is None
-
-
 def test_format_authors_removes_extras():
     """Tests that function removes '&', 'by ', 'and', etc"""
     result = format_authors("by Scooby & shaggy and Scrappy")
     assert result == ["Scooby", "Shaggy", "Scrappy"]
+
+
+def test_format_authors_only_names():
+    """Tests that author list is returned when columns does not start 'By ' """
+    result = format_authors("Velma and Daphne")
+    assert result == ["Velma", "Daphne"]
+
+
+def test_format_scraped_articles_strips_URL(mock_scraped_df):
+    """Tests the format_scraped_articles function strips url"""
+    result = format_scraped_articles_df(mock_scraped_df)
+    assert isinstance(result, pd.DataFrame)
+    assert result["url"][0] == "realurl.com"
+
+
+
+
+
+
