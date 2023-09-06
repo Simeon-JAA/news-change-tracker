@@ -87,3 +87,18 @@ def mock_dataframe():
         "published": "Mon, 04 Sep 2023 12:02:28 GMT",
         "title": "Angela Rayner handed new role"
     }])
+
+@pytest.fixture
+def mock_scraped_df():
+    """Fixture for scraped article dataframe"""
+    return pd.DataFrame([{
+        "author" : "By Scooby & Shaggy and Scrappy",
+        "headline" : "headline1",
+        "url" : "realurl.com",
+        "body" : "body1"},
+        {
+        "author" : "NaN",
+        "headline" : "headline2",
+        "url" : "realurl.com",
+        "body" : "body2"
+        }])
