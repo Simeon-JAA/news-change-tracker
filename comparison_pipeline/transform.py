@@ -17,12 +17,13 @@ def format_authors(authors: str) -> list[str]:
     """Returns a list of authors if they exist and ['No Author'] if none detected"""
 
     if authors.lower() == "nan":
-        return ["No Author"]
+        return None
 
     if authors[:3].lower() == "by ":
         authors = authors.lower().replace("by ", "", 1).replace(" &", ",")
         authors = authors.replace(" and", ",")
         authors = authors.split(", ")
+        authors.sort()
 
         authors = list(map(lambda author: author.title(), authors))
 
