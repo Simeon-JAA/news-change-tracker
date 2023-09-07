@@ -114,7 +114,7 @@ def retrieve_author_id(conn: connection, name: str) -> str:
 
 
 def retrieve_article_id(conn: connection, url: str) -> str:
-    """Retrieves author_id from author table."""
+    """Retrieves article_id from author table."""
 
     with conn.cursor() as cur:
         cur.execute("""SELECT article_id from article where article_url = %s""", [url])
@@ -131,6 +131,17 @@ def add_to_author_table(conn: connection, df: pd.DataFrame) -> None:
     with conn.cursor() as cur:
         tuples = df.to_records(index=False)
         execute_values(cur, """INSERT INTO author (author_name) VALUES %s;""", tuples)
+        conn.commit()
+
+
+def add_to_article_version_table(conn: connection, df: pd.DataFrame) -> None:
+    """Converts df into tuples, then adds to article_version table.
+    NB: needs article_id column converted into foreign key reference"""
+
+    with conn.cursor() as cur:
+        tuples = df.to_records(index=False)
+        execute_values(cur, """INSERT INTO article_version (scraped_at, heading, body, article_id)\
+                 VALUES %s;""", tuples)
         conn.commit()
 
 
@@ -169,8 +180,14 @@ def load_data():
         (lambda x: retrieve_article_id(db_conn, x)).map(str)
     df_author_article["author"] = df_author_article["author"].apply\
         (lambda x: retrieve_author_id(db_conn, x)).map(str)
-    print(df_author_article.info())
     add_to_article_author_table(db_conn, df_author_article)
+
+    # insert article_version
+    df_for_version = df_transformed[["published", "title", "body", "url"]].copy()
+    df_for_version["url"] = df_for_version["url"].apply\
+        (lambda x: retrieve_article_id(db_conn, x)).map(str)
+    print(df_for_version)
+    add_to_article_version_table(db_conn, df_for_version)
 
     db_conn.close()
 
