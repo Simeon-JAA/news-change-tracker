@@ -1,6 +1,7 @@
 """Handles all load functions that load data and information into the database"""
 # pylint: disable=invalid-name
 from os import environ
+import datetime
 import re
 import pandas as pd
 from dotenv import load_dotenv
@@ -9,6 +10,7 @@ from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 
 TRANSFORMED_DATA = "transformed_data.csv"
+TIME_NOW = datetime.datetime.now()
 
 
 def get_db_connection() -> connection:
@@ -179,6 +181,7 @@ def load_data():
         df_for_version = df_transformed[["published", "title", "body", "url"]].copy()
         df_for_version["url"] = df_for_version["url"].apply\
             (lambda x: retrieve_article_id(db_conn, x)).map(str)
+        df_for_version["published"] = TIME_NOW
         add_to_article_version_table(db_conn, df_for_version)
     except Exception as exc:
         print(exc)
