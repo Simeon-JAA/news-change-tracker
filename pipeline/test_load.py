@@ -2,7 +2,7 @@
 from unittest.mock import MagicMock, patch
 import pandas as pd
 from conftest import mock_dataframe
-from load import (get_db_connection, get_data_from_db, check_for_duplicate_articles, check_for_duplicate_authors,
+from load import (get_db_connection, check_for_duplicate_articles, check_for_duplicate_authors,
                    add_to_article_table, add_to_article_author_table, add_to_author_table, add_to_article_version_table,
                    add_to_scraping_info_table, retrieve_article_id, retrieve_author_id)
 
@@ -13,16 +13,6 @@ def test_get_connection_raises_error(mock_env):
     mock_env.return_value = {}
     result = get_db_connection()
     assert result == None
-
-
-def test_get_data_from_db_return_df():
-    """Tests function returns a dataframe by mocking DB connection"""
-    conn = MagicMock()
-    fake_fetch = conn.cursor().__enter__().fetchall
-    fake_fetch.return_value = [("column1", 1), ("column2", 2)]
-    result = get_data_from_db(conn, "table", "column")
-    assert isinstance(result, pd.DataFrame)
-    assert fake_fetch.call_count == 1
 
 
 def test_duplicate_article_returns_none():
