@@ -10,7 +10,6 @@ from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 
 TRANSFORMED_DATA = "transformed_data.csv"
-TIME_NOW = datetime.datetime.now()
 
 def get_db_connection() -> connection:
     """Returns connection to the rds database"""
@@ -147,51 +146,53 @@ def add_to_article_version_table(conn: connection, df: pd.DataFrame) -> None:
 
 def load_data():
     """Complete data loading in one function. Used for main.py"""
-    db_conn = get_db_connection()
-    df_transformed = pd.read_csv(TRANSFORMED_DATA)
+    try:
+        db_conn = get_db_connection()
+        df_transformed = pd.read_csv(TRANSFORMED_DATA)
 
-    # removes duplicates
-    df_transformed["url"] = df_transformed["url"].apply\
-        (lambda x: check_for_duplicate_articles(db_conn, x))
-    df_transformed = df_transformed.dropna(subset=["url"])
+        # removes duplicates
+        df_transformed["url"] = df_transformed["url"].apply\
+            (lambda x: check_for_duplicate_articles(db_conn, x))
+        df_transformed = df_transformed.dropna(subset=["url"])
 
-    # inserts articles
-    df_for_article = df_transformed[["url", "author", "published"]].copy()
-    df_for_article["author"] = "BBC"
-    add_to_article_table(db_conn, df_for_article)
+        # inserts articles
+        df_for_article = df_transformed[["url", "author", "published"]].copy()
+        df_for_article["author"] = "BBC"
+        add_to_article_table(db_conn, df_for_article)
 
-    # inserts authors
-    df_for_author = df_transformed[["author"]].copy().dropna()
-    df_for_author["author"] = df_for_author["author"].apply(lambda x: re.findall("'([^']*)'", x))
-    df_for_author = df_for_author.explode(column=["author"]).dropna()
-    df_for_author = df_for_author.drop_duplicates(subset=["author"])
-    df_for_author["author"] = df_for_author["author"].apply\
-        (lambda x: check_for_duplicate_authors(db_conn, x))
-    df_for_author = df_for_author.dropna()
-    df_for_author.to_csv("author.csv")
-    add_to_author_table(db_conn, df_for_author)
+        # inserts authors
+        df_for_author = df_transformed[["author"]].copy().dropna()
+        df_for_author["author"] = df_for_author["author"].apply(lambda x: re.findall("'([^']*)'", x))
+        df_for_author = df_for_author.explode(column=["author"]).dropna()
+        df_for_author = df_for_author.drop_duplicates(subset=["author"])
+        df_for_author["author"] = df_for_author["author"].apply\
+            (lambda x: check_for_duplicate_authors(db_conn, x))
+        df_for_author = df_for_author.dropna()
+        df_for_author.to_csv("author.csv")
+        add_to_author_table(db_conn, df_for_author)
 
-    # inserts article-author table entries
-    df_author_article = df_transformed[["url", "author"]].copy().dropna()
-    df_author_article["author"] = df_author_article["author"].apply\
-        (lambda x: re.findall("'([^']*)'", x))
-    df_author_article = df_author_article.explode(column=["author"]).dropna()
-    df_author_article.to_csv("author_article.csv")
-    df_author_article["url"] = df_author_article["url"].apply\
-        (lambda x: retrieve_article_id(db_conn, x)).map(str)
-    df_author_article["author"] = df_author_article["author"].apply\
-        (lambda x: retrieve_author_id(db_conn, x)).map(str)
-    add_to_article_author_table(db_conn, df_author_article)
+        # inserts article-author table entries
+        df_author_article = df_transformed[["url", "author"]].copy().dropna()
+        df_author_article["author"] = df_author_article["author"].apply\
+            (lambda x: re.findall("'([^']*)'", x))
+        df_author_article = df_author_article.explode(column=["author"]).dropna()
+        df_author_article.to_csv("author_article.csv")
+        df_author_article["url"] = df_author_article["url"].apply\
+            (lambda x: retrieve_article_id(db_conn, x)).map(str)
+        df_author_article["author"] = df_author_article["author"].apply\
+            (lambda x: retrieve_author_id(db_conn, x)).map(str)
+        add_to_article_author_table(db_conn, df_author_article)
 
-    # insert article_version
-    df_for_version = df_transformed[["published", "title", "body", "url"]].copy()
-    df_for_version["url"] = df_for_version["url"].apply\
-        (lambda x: retrieve_article_id(db_conn, x)).map(str)
-    print(df_for_version)
-    add_to_article_version_table(db_conn, df_for_version)
+        # insert article_version
+        df_for_version = df_transformed[["published", "title", "body", "url"]].copy()
+        df_for_version["url"] = df_for_version["url"].apply\
+            (lambda x: retrieve_article_id(db_conn, x)).map(str)
+        add_to_article_version_table(db_conn, df_for_version)
+    except Exception as exc:
+        print(exc)
+    finally:
+        db_conn.close()
 
-    db_conn.close()
 
-
-if __name__ == "__main__":
-    load_data()
+    if __name__ == "__main__":
+        load_data()
