@@ -1,7 +1,6 @@
 """Handles all load functions that load data and information into the database"""
 # pylint: disable=invalid-name
 from os import environ
-import datetime
 import re
 import pandas as pd
 from dotenv import load_dotenv
@@ -10,6 +9,7 @@ from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 
 TRANSFORMED_DATA = "transformed_data.csv"
+
 
 def get_db_connection() -> connection:
     """Returns connection to the rds database"""
@@ -38,17 +38,8 @@ def get_connected_locally():
     return conn
 
 
-def get_data_from_db(conn: connection, table: str, column = "*")-> pd.DataFrame:
-    """Connects to the database and returns dataframe of selected table and column(s)"""
-    with conn.cursor() as cur:
-        cur.execute(f"""SELECT {column} FROM {table};""")
-        result = cur.fetchall()
-
-    return pd.DataFrame(result)
-
-
 def check_for_duplicate_articles(conn: connection, url: str) -> str:
-    """Checks for a duplicates in article table. Returns a dataframe without duplicates."""
+    """Checks for a duplicates in article table. Returns None if duplicate found."""
 
     with conn.cursor() as cur:
         cur.execute("""SELECT * FROM article where article_url = %s;""", [url])
@@ -59,7 +50,7 @@ def check_for_duplicate_articles(conn: connection, url: str) -> str:
 
 
 def check_for_duplicate_authors(conn: connection, name: str) -> str:
-    """Checks for a duplicates in author table. Returns a dataframe without duplicates."""
+    """Checks for a duplicates in author table. Returns None if duplicate found."""
 
     with conn.cursor() as cur:
         cur.execute("""SELECT * FROM author where author_name = %s;""", [name])
@@ -89,6 +80,7 @@ def add_to_article_author_table(conn: connection, df: pd.DataFrame) -> None:
         execute_values(cur, """INSERT INTO article_author (article_id, author_id)
                        VALUES %s;""", tuples)
         conn.commit()
+
 
 def add_to_scraping_info_table(conn: connection, df: pd.DataFrame) -> None:
     """Converts df into tuples, then adds to scraping_info table.
