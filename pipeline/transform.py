@@ -95,7 +95,7 @@ def transform_data() -> None:
 
     joined_data = joined_data[["title", "url", "headline", "body", "author", "published"]]
 
-    joined_data.to_csv("transformed_data.csv")
+    joined_data.to_csv(TRANSFORMED_DATA_CSV)
 
 
 if __name__ == "__main__":

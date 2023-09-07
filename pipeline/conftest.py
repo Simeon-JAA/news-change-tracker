@@ -78,7 +78,7 @@ def bbc_sport_html():
             "</body>" \
         "</html>"
     return html
-
+  
 @pytest.fixture
 def mock_dataframe():
     """Fixture for raw dataframe"""
