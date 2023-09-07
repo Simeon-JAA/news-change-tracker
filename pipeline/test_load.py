@@ -40,7 +40,7 @@ def test_duplicate_author_returns_none():
     conn = MagicMock()
     fake_fetch = conn.cursor().__enter__().fetchall
     fake_fetch.return_value = [1, 1]
-    result = check_for_duplicate_articles(conn, "Bob Vance")
+    result = check_for_duplicate_authors(conn, "Bob Vance")
     assert fake_fetch.call_count == 1
     assert result == None
 
