@@ -43,11 +43,11 @@ def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
     data = cur.fetchall()
 
     return pd.DataFrame(data,
-                        columns=["article_id","article_url", "heading",
+                        columns=["article_id", "article_url", "heading",
                                  "body", "scraped_at", "author_name"])
 
 
-def split_author_name_row(row: str | None) -> list[str] | None:
+def split_author_name_row(row: str) -> list[str]:
     """splits author row into common structure type for comparison"""
 
     if not isinstance(row, str):
@@ -63,16 +63,21 @@ def split_author_name_row(row: str | None) -> list[str] | None:
 def identify_changes(scraped_df: pd.DataFrame, rds_df: pd.DataFrame) -> pd.DataFrame:
     """Identifies changes in the scraped df and returns a df with the article changes"""
 
-    joined_df = pd.merge(left=scraped_df, right=rds_df, left_on=["url"], right_on=["article_url"])
+    joined_df = pd.merge(left=scraped_df, right=rds_df, left_on=[
+                         "url"], right_on=["article_url"])
 
-    differences_in_body = joined_df[joined_df["body_x"] != joined_df["body_y"]].copy()
+    differences_in_body = joined_df[joined_df["body_x"]
+                                    != joined_df["body_y"]].copy()
     differences_in_body = differences_in_body[["article_id", "body_y"]]
 
-    differences_in_headline = joined_df[joined_df["heading"] != joined_df["headline"]].copy()
+    differences_in_headline = joined_df[joined_df["heading"]
+                                        != joined_df["headline"]].copy()
     differences_in_headline = joined_df[["article_id", "heading"]]
 
-    joined_df["author_name"] = joined_df["author_name"].apply(split_author_name_row)
-    differences_in_authors = joined_df[joined_df["author"] != joined_df["author_name"]].copy()
+    joined_df["author_name"] = joined_df["author_name"].apply(
+        split_author_name_row)
+    differences_in_authors = joined_df[joined_df["author"]
+                                       != joined_df["author_name"]].copy()
     differences_in_authors = joined_df[["article_id", "author_name"]]
 
     difference_in_articles = pd.merge(differences_in_body, differences_in_headline,
@@ -88,7 +93,8 @@ def compare_data() -> None:
 
     conn = get_db_connection()
 
-    scraped_data_transformed_df = get_scraped_data_as_df(SCRAPED_DATA_TRANSFORMED)
+    scraped_data_transformed_df = get_scraped_data_as_df(
+        SCRAPED_DATA_TRANSFORMED)
 
     article_data_in_db_df = get_latest_version_of_article_from_db(conn)
 
