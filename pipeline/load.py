@@ -173,7 +173,8 @@ def load_data():
 
     # inserts article-author table entries
     df_author_article = df_transformed[["url", "author"]].copy().dropna()
-    df_author_article["author"] = df_author_article["author"].apply(lambda x: re.findall("'([^']*)'", x))
+    df_author_article["author"] = df_author_article["author"].apply\
+        (lambda x: re.findall("'([^']*)'", x))
     df_author_article = df_author_article.explode(column=["author"]).dropna()
     df_author_article.to_csv("author_article.csv")
     df_author_article["url"] = df_author_article["url"].apply\
