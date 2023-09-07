@@ -187,7 +187,6 @@ def load_data():
     df_for_version = df_transformed[["published", "title", "body", "url"]].copy()
     df_for_version["url"] = df_for_version["url"].apply\
         (lambda x: retrieve_article_id(db_conn, x)).map(str)
-    print(df_for_version)
     add_to_article_version_table(db_conn, df_for_version)
 
     db_conn.close()
