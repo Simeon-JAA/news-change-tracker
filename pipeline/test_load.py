@@ -1,7 +1,5 @@
 # pylint: skip-file
-import pytest
 from unittest.mock import MagicMock, patch
-import psycopg2
 import pandas as pd
 from conftest import mock_dataframe
 from load import (get_db_connection, get_data_from_db, check_for_duplicate_articles, check_for_duplicate_authors,
