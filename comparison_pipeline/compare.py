@@ -55,6 +55,7 @@ def split_author_name_row(row: str | None) -> list[str] | None:
     
     row = row.split(",")
     row.sort()
+    row = list(map(lambda text: text.title(), row))
     
     return row
 
