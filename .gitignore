@@ -163,6 +163,9 @@ cython_debug/
 # csvs
 *.csv
 
+# testing
+delete.sql
+
 #jupyter
 view_data.ipynb
 
