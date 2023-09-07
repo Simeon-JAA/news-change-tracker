@@ -72,17 +72,6 @@ def add_to_article_author_table(conn: connection, df: pd.DataFrame) -> None:
         conn.commit()
 
 
-def add_to_scraping_info_table(conn: connection, df: pd.DataFrame) -> None:
-    """Converts df into tuples, then adds to scraping_info table.
-    NB: needs article_id column converted into foreign key reference"""
-
-    with conn.cursor() as cur:
-        tuples = df.to_records(index=False)
-        execute_values(cur, """INSERT INTO scraping_info (scraped_at, title, body,
-                       article_id) VALUES %s""", tuples)
-        conn.commit()
-
-
 def retrieve_author_id(conn: connection, name: str) -> str:
     """Retrieves author_id from author table."""
 
