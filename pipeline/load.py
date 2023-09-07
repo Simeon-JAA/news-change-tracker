@@ -28,18 +28,6 @@ def get_db_connection() -> connection:
     return None
 
 
-def get_connected_locally():
-    """Connectivity function for local database"""
-    load_dotenv()
-    conn = connect(\
-    user = environ["LOCAL_USER"],
-    host = environ["LOCAL_IP"],
-    password = environ["LOCAL_PASSWORD"],
-    port = environ["DB_PORT"],
-    database = environ["DB_NAME"])
-    return conn
-
-
 def check_for_duplicate_articles(conn: connection, url: str) -> str:
     """Checks for a duplicates in article table. Returns None if duplicate found."""
 
@@ -150,8 +138,9 @@ def load_data():
         df_transformed = df_transformed.dropna(subset=["url"])
 
         # inserts articles
-        df_for_article = df_transformed[["url", "author", "published"]].copy()
-        df_for_article["author"] = "BBC"
+        df_for_article = df_transformed[["url", "published"]].copy()
+        df_for_article["source"] = "BBC"
+        df_for_article = df_for_article.reindex(columns=["url", "source", "published"])
         add_to_article_table(db_conn, df_for_article)
 
         # inserts authors
@@ -162,7 +151,6 @@ def load_data():
         df_for_author["author"] = df_for_author["author"].apply\
             (lambda x: check_for_duplicate_authors(db_conn, x))
         df_for_author = df_for_author.dropna()
-        df_for_author.to_csv("author.csv")
         add_to_author_table(db_conn, df_for_author)
 
         # inserts article-author table entries
@@ -170,7 +158,6 @@ def load_data():
         df_author_article["author"] = df_author_article["author"].apply\
             (lambda x: re.findall("'([^']*)'", x))
         df_author_article = df_author_article.explode(column=["author"]).dropna()
-        df_author_article.to_csv("author_article.csv")
         df_author_article["url"] = df_author_article["url"].apply\
             (lambda x: retrieve_article_id(db_conn, x)).map(str)
         df_author_article["author"] = df_author_article["author"].apply\
@@ -183,11 +170,11 @@ def load_data():
             (lambda x: retrieve_article_id(db_conn, x)).map(str)
         df_for_version["published"] = str(TIME_NOW)
         add_to_article_version_table(db_conn, df_for_version)
-    except Exception as exc:
-        print(exc)
+    except KeyboardInterrupt:
+        print("Keyboard interrupt")
     finally:
         db_conn.close()
 
 
-    if __name__ == "__main__":
-        load_data()
+if __name__ == "__main__":
+    load_data()

@@ -35,7 +35,5 @@ CREATE TABLE IF NOT EXISTS article_version (
     body TEXT NOT NULL,
     article_id INT NOT NULL,
     PRIMARY KEY(article_version_id),
-    FOREIGN KEY (article_id) REFERENCES article(article_id),
-    CONSTRAINT check_scraped_at CHECK (scraped_at <= NOW())
-
+    FOREIGN KEY (article_id) REFERENCES article(article_id)
 );
