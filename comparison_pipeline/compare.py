@@ -15,7 +15,8 @@ def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
     return pd.read_csv(file_path)
 
 
-def get_scraped_data_from_db(conn: connection) -> pd.DataFrame:
+#TODO Remove test schema selection from function
+def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
     """Returns data from rds database in a dataframe for comparison"""
 
     cur = conn.cursor()
@@ -24,17 +25,22 @@ def get_scraped_data_from_db(conn: connection) -> pd.DataFrame:
                     test.article.article_id,
                     test.article.source,
                     test.article.article_url,
-                    test.scraping_info.heading,
-                    test.scraping_info.body
+                    test.article_version.heading,
+                    test.article_version.body,
+                    test.article_version.scraped_at
                     FROM test.article
-                    LEFT JOIN test.scraping_info
-                    ON test.scraping_info.article_id = test.article.article_id;""")
+                    LEFT JOIN test.article_version
+                    ON test.article_version.article_id = test.article.article_id
+                    WHERE test.article_version.scraped_at = (SELECT MAX(test.article_version.scraped_at) 
+                    FROM test.article_version WHERE test.article.article_id = test.article_version.article_id)
+                    ;""")
 
     data = cur.fetchall()
 
     return pd.DataFrame(data, 
                         columns=["article_id", "source",
-                                 "article_url", "heading", "body"])
+                                 "article_url", "heading", "body",
+                                 "scraped_at"])
 
 
 def compare_data() -> None:
@@ -44,7 +50,7 @@ def compare_data() -> None:
 
     scraped_data = get_scraped_data_as_df(SCRAPED_DATA_FOR_COMPARISON)
 
-    article_data_in_db = get_scraped_data_from_db(conn)
+    article_data_in_db = get_latest_version_of_article_from_db(conn)
 
     conn.close()
 
