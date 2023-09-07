@@ -7,7 +7,7 @@ from extract import get_db_connection
 
 
 SCRAPED_DATA_TRANSFORMED = "transformed_data.csv"
-ARTICLE_CHANGES = "article_changes_deteceted.csv"
+ARTICLE_CHANGES = "article_changes.csv"
 
 
 def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
@@ -21,7 +21,7 @@ def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
 
     cur = conn.cursor()
 
-    cur.execute("""SELECT 
+    cur.execute("""SELECT
                 article.article_id, article.article_url,
                 article_version.heading, article_version.body,
                 article_version.scraped_at,
@@ -42,7 +42,7 @@ def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
 
     data = cur.fetchall()
 
-    return pd.DataFrame(data, 
+    return pd.DataFrame(data,
                         columns=["article_id","article_url", "heading",
                                  "body", "scraped_at", "author_name"])
 
@@ -51,18 +51,18 @@ def split_author_name_row(row: str | None) -> list[str] | None:
     """splits author row into common structure type for comparison"""
 
     if not isinstance(row, str):
-        return 
-    
+        return
+
     row = row.split(",")
     row.sort()
     row = list(map(lambda text: text.title(), row))
-    
+
     return row
 
 
 def identify_changes(scraped_df: pd.DataFrame, rds_df: pd.DataFrame) -> pd.DataFrame:
-    """Identifies the changes in the scraped df and returns a df with the articles that have changes"""
-    
+    """Identifies changes in the scraped df and returns a df with the article changes"""
+
     joined_df = pd.merge(left=scraped_df, right=rds_df, left_on=["url"], right_on=["article_url"])
 
     differences_in_body = joined_df[joined_df["body_x"] != joined_df["body_y"]].copy()
@@ -75,8 +75,10 @@ def identify_changes(scraped_df: pd.DataFrame, rds_df: pd.DataFrame) -> pd.DataF
     differences_in_authors = joined_df[joined_df["author"] != joined_df["author_name"]].copy()
     differences_in_authors = joined_df[["article_id", "author_name"]]
 
-    difference_in_articles = pd.merge(differences_in_body, differences_in_headline, "outer", ["article_id"])
-    difference_in_articles = pd.merge(difference_in_articles, differences_in_authors, "outer", ["article_id"])
+    difference_in_articles = pd.merge(differences_in_body, differences_in_headline,
+                                      "outer", ["article_id"])
+    difference_in_articles = pd.merge(difference_in_articles, differences_in_authors,
+                                      "outer", ["article_id"])
 
     return difference_in_articles
 
@@ -92,8 +94,8 @@ def compare_data() -> None:
 
     changes_in_article_df = identify_changes(scraped_data_transformed_df,
                                              article_data_in_db_df)
-    
-    changes_in_article_df.to_csv(ARTICLE_CHANGES)    
+
+    changes_in_article_df.to_csv(ARTICLE_CHANGES)
 
     conn.close()
 
