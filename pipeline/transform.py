@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import pandas as pd
+import pytz
 from pandas import DataFrame
 
 RSS_FEED_DATA = "rss_feed.csv"
@@ -30,8 +31,8 @@ def format_time_to_timestamp(time_in_col: str) -> datetime:
     """Formats time to timestamp format to load into postgres"""
 
     time_in_col = time_in_col[5:]
-
-    time_in_col = datetime.strptime(time_in_col, "%d %b %Y %H:%M:%S %Z")
+    gmt = pytz.timezone("Europe/London")
+    time_in_col = gmt.localize(datetime.strptime(time_in_col, "%d %b %Y %H:%M:%S %Z"))
 
     return time_in_col
 
@@ -53,13 +54,14 @@ def format_authors(authors: str) -> str | None :
         return None
 
     if authors[:3].lower() == "by ":
-        authors = authors.lower().replace("by ", "").replace(" &", ",")
-        authors = authors.replace(" and", ",")
-        authors = authors.split(", ")
+        authors = authors.lower().replace("by ", "", 1)
+    authors = authors.replace(" &", ",")
+    authors = authors.replace(" and", ",")
+    authors = authors.split(", ")
 
-        authors = list(map(lambda author: author.title(), authors))
+    authors = list(map(lambda author: author.title(), authors))
 
-        return authors
+    return authors
 
 
 def format_scraped_articles_df(scraped_articles_df: DataFrame) -> DataFrame:
@@ -93,7 +95,7 @@ def transform_data() -> None:
 
     joined_data = joined_data[["title", "url", "headline", "body", "author", "published"]]
 
-    joined_data.to_csv("transformed_data.csv")
+    joined_data.to_csv(TRANSFORMED_DATA_CSV)
 
 
 if __name__ == "__main__":
@@ -102,11 +104,11 @@ if __name__ == "__main__":
 
     rss_feed_df = format_rss_feed_df(rss_feed_df)
 
-    scraped_article_df = get_scraped_articles_df(SCRAPED_DATA)
+    articles_df = get_scraped_articles_df(SCRAPED_DATA)
 
-    scraped_article_df = format_scraped_articles_df(scraped_article_df)
+    articles_df = format_scraped_articles_df(articles_df)
 
-    joined_data = pd.merge(left=scraped_article_df,
+    joined_data = pd.merge(left=articles_df,
                             right=rss_feed_df,
                             left_on="url",
                             right_on="id",
