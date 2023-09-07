@@ -1,10 +1,10 @@
 # pylint: skip-file
 from unittest.mock import MagicMock, patch
 import pandas as pd
-from conftest import mock_dataframe
+from conftest import mock_dataframe, mock_loading_df
 from load import (get_db_connection, check_for_duplicate_articles, check_for_duplicate_authors,
-                   add_to_article_table, add_to_article_author_table, add_to_author_table, add_to_article_version_table,
-                   add_to_scraping_info_table, retrieve_article_id, retrieve_author_id)
+                add_to_article_table, add_to_article_author_table, add_to_author_table, add_to_article_version_table,
+                retrieve_article_id, retrieve_author_id, load_data)
 
 
 @patch("load.load_dotenv")
@@ -76,16 +76,6 @@ def test_add_article_author_table_executes(mock_execute, mock_dataframe):
 
 
 @patch("load.execute_values")
-def test_add_scraping_info_table_executes(mock_execute, mock_dataframe):
-    """Tests that execute_values is called with a mock connection inside add_scraping_info function"""
-    conn = MagicMock()
-
-    add_to_scraping_info_table(conn, mock_dataframe)
-    assert mock_execute.call_count == 1
-    assert conn.commit.call_count == 1
-
-
-@patch("load.execute_values")
 def test_add_author_table_executes(mock_execute, mock_dataframe):
     """Tests that execute_values is called with a mock connection inside add_author function"""
     conn = MagicMock()
@@ -143,3 +133,29 @@ def test_retrieve_article_id_no_match():
     result = retrieve_article_id(conn, "test.com")
     assert result == None
     assert fake_fetch.call_count == 1
+
+
+@patch("load.execute_values")
+@patch("load.pd.read_csv")
+@patch("load.get_db_connection")
+def test_load_data_conn_close_called(mock_connection, mock_read_csv, mock_execute, mock_loading_df):
+    """Tests that conn.close is called in function"""
+    mock_conn = MagicMock()
+    mock_read_csv.return_value = mock_loading_df
+    mock_connection.return_value = mock_conn
+
+    load_data()
+    assert mock_conn.close.call_count == 1
+
+
+@patch("load.execute_values")
+@patch("load.pd.read_csv")
+@patch("load.get_db_connection")
+def test_load_data_conn_commit_called(mock_connection, mock_read_csv, mock_execute, mock_loading_df):
+    """Tests that conn.close is called in function"""
+    mock_conn = MagicMock()
+    mock_read_csv.return_value = mock_loading_df
+    mock_connection.return_value = mock_conn
+
+    load_data()
+    assert mock_conn.commit.call_count == 4

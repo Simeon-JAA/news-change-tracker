@@ -102,3 +102,16 @@ def mock_scraped_df():
         "url" : " realurl.com",
         "body" : "body2"
         }])
+
+
+@pytest.fixture
+def mock_loading_df():
+    """Fixture for mock df to be used in testing load"""
+    return pd.DataFrame([{
+        "title" : "title",
+        "url" : "test.com",
+        "headline" : "headline",
+        "body" : "body",
+        "author" : "Miss Chanandler Bong",
+        "published" : "2023-09-07 14:05:53+01:00",
+    }])
