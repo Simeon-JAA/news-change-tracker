@@ -140,9 +140,8 @@ def add_to_article_version_table(conn: connection, df: pd.DataFrame) -> None:
 
 def load_data():
     """Complete data loading in one function. Used for main.py"""
-    try:
-        db_conn = get_db_connection()
-        df_transformed = pd.read_csv(TRANSFORMED_DATA)
+    db_conn = get_connected_locally()
+    df_transformed = pd.read_csv(TRANSFORMED_DATA)
 
         # removes duplicates
         df_transformed["url"] = df_transformed["url"].apply\
