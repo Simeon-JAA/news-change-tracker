@@ -7,6 +7,7 @@ from extract import get_db_connection
 
 
 SCRAPED_DATA_TRANSFORMED = "transformed_data.csv"
+ARTICLE_CHANGES = "article_changes_deteceted.csv"
 
 
 def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
@@ -15,28 +16,27 @@ def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
     return pd.read_csv(file_path)
 
 
-#TODO Remove test schema selection from function
 def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
     """Returns data from rds database in a dataframe for comparison"""
 
     cur = conn.cursor()
 
     cur.execute("""SELECT 
-                test.article.article_id, test.article.article_url,
-                test.article_version.heading, test.article_version.body,
-                test.article_version.scraped_at,
-                string_agg(test.author.author_name, ',') AS author_name
-                FROM test.article
-                LEFT JOIN test.article_version
-                ON test.article_version.article_id = test.article.article_id
-                LEFT JOIN test.article_author
-                ON test.article_author.article_id = test.article.article_id
-                LEFT JOIN test.author
-                ON test.article_author.author_id = test.author.author_id
-                WHERE test.article_version.scraped_at = (SELECT MAX(test.article_version.scraped_at) 
-                FROM test.article_version WHERE test.article.article_id = test.article_version.article_id)
-                GROUP BY test.article.article_id, test.article.article_url, 
-                test.article_version.heading, test.article_version.body,
+                article.article_id, article.article_url,
+                article_version.heading, article_version.body,
+                article_version.scraped_at,
+                string_agg(author.author_name, ',') AS author_name
+                FROM article
+                LEFT JOIN article_version
+                ON article_version.article_id = article.article_id
+                LEFT JOIN article_author
+                ON article_author.article_id = article.article_id
+                LEFT JOIN author
+                ON article_author.author_id = author.author_id
+                WHERE article_version.scraped_at = (SELECT MAX(article_version.scraped_at) 
+                FROM article_version WHERE article.article_id = article_version.article_id)
+                GROUP BY article.article_id, article.article_url, 
+                article_version.heading, article_version.body,
                 scraped_at
                 ;""")
 
@@ -92,11 +92,7 @@ def compare_data() -> None:
     changes_in_article_df = identify_changes(scraped_data_transformed_df,
                                              article_data_in_db_df)
     
-    print(changes_in_article_df)
-    
-    #TODO Append changes as a new entry in db
-    #TODO 
-    #TODO Update scraped at timings for entries in the db that exist 
+    changes_in_article_df.to_csv(ARTICLE_CHANGES)    
 
     conn.close()
 
