@@ -1,6 +1,7 @@
 """Extraction file for comparison pipeline"""
 
 from os import environ
+from datetime import datetime
 import re
 
 import pandas as pd
@@ -21,16 +22,16 @@ def get_db_connection() -> connection:
 
     try:
         return connect(host=environ["DB_HOST"],
-                   user=environ["DB_USER"],
-                   password=environ["DB_PASSWORD"],
-                   port=environ["DB_PORT"],
-                   dbname=environ["DB_NAME"])
+                       user=environ["DB_USER"],
+                       password=environ["DB_PASSWORD"],
+                       port=environ["DB_PORT"],
+                       dbname=environ["DB_NAME"])
     except Exception as exc:
         print(f"get_db_connection Error: {exc}")
         raise Exception()
 
 
-def get_urls_from_article_table(conn: connection)-> list[str]:
+def get_urls_from_article_table(conn: connection) -> list[str]:
     """Connects to the database and returns selected columns of selected table as a list"""
 
     with conn.cursor() as cur:
@@ -55,20 +56,23 @@ def scrape_article(article_url: str) -> dict:
     headline = soup.find('h1').text
 
     if body is not None:
-        relevant_divs = body.findAll('div', attrs={"data-component": "text-block"})
+        relevant_divs = body.findAll(
+            'div', attrs={"data-component": "text-block"})
         text = " ".join(div.find('p').text for div in relevant_divs)
-        author = body.find('div', attrs= {"class": re.compile(".*TextContributorName")})
+        author = body.find(
+            'div', attrs={"class": re.compile(".*TextContributorName")})
     else:
         body = soup.find('article')
         if body:
             text = " ".join([p.text for p in body.findAll('p')])
-            author = body.find('div', attrs= {"class": re.compile(".*TextContributorName")})
-
+            author = body.find(
+                'div', attrs={"class": re.compile(".*TextContributorName")})
 
     article_dict["body"] = text
     article_dict["headline"] = headline
     article_dict["url"] = article_url
     article_dict["author"] = getattr(author, "text", None)
+    article_dict["scraped_at"] = datetime.now().replace(microsecond=0)
 
     return article_dict
 
@@ -100,7 +104,8 @@ def extract_data() -> None:
 
     scraped_article_information = scrape_all_articles(url_list)
 
-    scraped_article_information.to_csv(SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
+    scraped_article_information.to_csv(
+        SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
 
     conn.close()
 
@@ -113,6 +118,7 @@ if __name__ == "__main__":
 
     scraped_article_information = scrape_all_articles(url_list)
 
-    scraped_article_information.to_csv(SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
+    scraped_article_information.to_csv(
+        SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
 
     conn.close()
