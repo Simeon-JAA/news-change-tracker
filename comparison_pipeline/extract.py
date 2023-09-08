@@ -1,8 +1,6 @@
 """Extraction file for comparison pipeline"""
 
 from os import environ
-import re
-
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup as bs
@@ -10,8 +8,8 @@ from dotenv import load_dotenv
 from psycopg2 import connect, OperationalError
 from psycopg2.extensions import connection
 
-
-SCRAPED_ARTICLES_FOR_COMPARISON = "scraped_articles_for_comparison.csv"
+ARTICLES_FROM_DB = "previous_versions.csv"
+SCRAPED_ARTICLES = "scraped_articles_change_pls.csv"
 
 
 def get_db_connection() -> connection:
@@ -58,24 +56,34 @@ def scrape_article(article_url: str) -> dict:
         relevant_divs = body.findAll(
             'div', attrs={"data-component": "text-block"})
         text = " ".join(div.find('p').text for div in relevant_divs)
+<<<<<<< HEAD
         author = body.find(
             'div', attrs={"class": re.compile(".*TextContributorName")})
+=======
+>>>>>>> 3541c6e (refactored transformed)
     else:
         body = soup.find('article')
         if body:
             text = " ".join([p.text for p in body.findAll('p')])
+<<<<<<< HEAD
             author = body.find(
                 'div', attrs={"class": re.compile(".*TextContributorName")})
+=======
+
+>>>>>>> 3541c6e (refactored transformed)
 
     article_dict["body"] = text
     article_dict["headline"] = headline
     article_dict["url"] = article_url
-    article_dict["author"] = getattr(author, "text", None)
 
     return article_dict
 
 
+<<<<<<< HEAD
 def scrape_all_articles(urls: list[str]) -> pd.DataFrame:
+=======
+def scrape_all_articles(list_of_urls: list) -> pd.DataFrame:
+>>>>>>> 3541c6e (refactored transformed)
     """Scrapes article data from a list of URLs and returns a dataframe"""
     article_list = []
 
@@ -93,23 +101,56 @@ def scrape_all_articles(urls: list[str]) -> pd.DataFrame:
     return pd.DataFrame(article_list)
 
 
+def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
+    """Returns data from rds database in a dataframe for comparison"""
+
+    cur = conn.cursor()
+
+    cur.execute("""SELECT
+                test.article.article_id, test.article.article_url,
+                test.article_version.heading, test.article_version.body,
+                test.article_version.scraped_at
+                FROM test.article
+                LEFT JOIN test.article_version
+                ON test.article_version.article_id = test.article.article_id
+                WHERE test.article_version.scraped_at = (SELECT MAX(test.article_version.scraped_at)
+                FROM test.article_version WHERE test.article.article_id = test.article_version.article_id)
+                GROUP BY test.article.article_id, test.article.article_url,
+                test.article_version.heading, test.article_version.body,
+                scraped_at
+                ;""")
+
+    data = cur.fetchall()
+
+    return pd.DataFrame(data,
+                        columns=["article_id", "article_url", "heading",
+                                 "body", "scraped_at"])
+
+
 def extract_data() -> None:
     """Contains all functions in extract.py to fulfil whole extract process"""
 
-    conn = get_db_connection()
+    db_conn = get_db_connection()
 
-    url_list = get_urls_from_article_table(conn)
+    url_list = get_urls_from_article_table(db_conn)
 
     scraped_article_information = scrape_all_articles(url_list)
+    previous_versions = get_latest_version_of_article_from_db(db_conn)
 
+<<<<<<< HEAD
     scraped_article_information.to_csv(
         SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
+=======
+    scraped_article_information.to_csv(SCRAPED_ARTICLES, index=False)
+    previous_versions.to_csv(ARTICLES_FROM_DB, index=False)
+>>>>>>> 3541c6e (refactored transformed)
 
-    conn.close()
+    db_conn.close()
 
 
 if __name__ == "__main__":
 
+<<<<<<< HEAD
     conn = get_db_connection()
 
     url_list = get_urls_from_article_table(conn)
@@ -120,3 +161,6 @@ if __name__ == "__main__":
         SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
 
     conn.close()
+=======
+    extract_data()
+>>>>>>> 3541c6e (refactored transformed)

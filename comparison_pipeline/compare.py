@@ -1,5 +1,5 @@
 """Comparison file to compare scraped data with data in the db"""
-
+# pylint: disable=invalid-name
 import pandas as pd
 from psycopg2.extensions import connection
 
@@ -7,7 +7,8 @@ from extract import get_db_connection
 
 
 SCRAPED_DATA_TRANSFORMED = "transformed_data.csv"
-ARTICLE_CHANGES = "article_changes.csv"
+ARTICLES_FROM_DB = "previous_versions.csv"
+SCRAPED_ARTICLES = "scraped_articles_change_pls.csv"
 
 
 def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
@@ -16,7 +17,7 @@ def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
     return pd.read_csv(file_path)
 
 
-def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
+def get_latest_version_of_article_from_db_old(conn: connection) -> pd.DataFrame:
     """Returns data from rds database in a dataframe for comparison"""
 
     cur = conn.cursor()
@@ -33,9 +34,9 @@ def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
                 ON test.article_author.article_id = test.article.article_id
                 LEFT JOIN test.author
                 ON test.article_author.author_id = test.author.author_id
-                WHERE test.article_version.scraped_at = (SELECT MAX(test.article_version.scraped_at) 
+                WHERE test.article_version.scraped_at = (SELECT MAX(test.article_version.scraped_at)
                 FROM test.article_version WHERE test.article.article_id = test.article_version.article_id)
-                GROUP BY test.article.article_id, test.article.article_url, 
+                GROUP BY test.article.article_id, test.article.article_url,
                 test.article_version.heading, test.article_version.body,
                 scraped_at
                 ;""")
