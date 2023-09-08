@@ -59,8 +59,59 @@ resource "aws_ecr_repository" "c8-news-change-tracker-etl-ecr" {
   }
 }
 
-data "aws_ecr_image" "c8-news-change-tracker-etl-image" {
-  repository_name = aws_ecr_repository.c8-news-change-tracker-etl-ecr.name
-  image_tag       = "latest"
+resource "aws_iam_role" "c8-news-change-tracker-ecs-role" {
+  name = "c8-news-change-tracker-ecs-role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_ecs_task_definition" "c8-news-change-tracker-etl-task-definition" {
+  family                   = "c8-news-change-tracker-etl-task-definition"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 1024
+  memory                   = 3072
+  task_role_arn = aws_iam_role.c8-news-change-tracker-ecs-role.arn
+  execution_role_arn = aws_iam_role.c8-news-change-tracker-ecs-role.arn
+  
+  container_definitions    = jsonencode(
+  [ 
+    {
+    "name": "c8-news-change-tracker-etl-container",
+    "image": "129033205317.dkr.ecr.eu-west-2.amazonaws.com/c8-news-change-tracker-etl-ecr:latest"
+    "cpu": 1024,
+    "memory": 3072,
+    "essential": true,
+    "portMappings": [
+      {
+        "containerPort": 80,
+        "hostPort": 80,
+      }, {
+        "containerPort": 5432,
+        "hostPort": 5432,
+      }
+    ]
+    "environment": [
+      {"name": "DB_NAME", "value": var.CONTAINER_DB_NAME},
+      {"name": "DB_USER", "value": var.CONTAINER_DB_USER},
+      {"name": "DB_PASSWORD", "value": var.CONTAINER_DB_PASSWORD},
+      {"name": "DB_PORT", "value": var.CONTAINER_DB_PORT},
+      {"name": "DB_HOST", "value": var.CONTAINER_DB_HOST }
+    ]
+    }
+  ])
 }
 
