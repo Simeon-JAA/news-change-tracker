@@ -40,7 +40,7 @@ def test_duplicate_author_returns_none():
     conn = MagicMock()
     fake_fetch = conn.cursor().__enter__().fetchall
     fake_fetch.return_value = [1, 1]
-    result = check_for_duplicate_authors(conn, "Bob Vance")
+    result = check_for_duplicate_articles(conn, "Bob Vance")
     assert fake_fetch.call_count == 1
     assert result == None
 
@@ -119,9 +119,9 @@ def test_retrieve_article_id():
     """Tests that retrieve article ids returns an id"""
     conn = MagicMock()
     fake_fetch = conn.cursor().__enter__().fetchall
-    fake_fetch.return_value = [("test.com",)]
-    result = retrieve_article_id(conn, "test.com")
-    assert result == "test.com"
+    fake_fetch.return_value = [("www.test.com",)]
+    result = retrieve_article_id(conn, "www.test.com")
+    assert result == "www.test.com"
     assert fake_fetch.call_count == 1
 
 
@@ -130,7 +130,7 @@ def test_retrieve_article_id_no_match():
     conn = MagicMock()
     fake_fetch = conn.cursor().__enter__().fetchall
     fake_fetch.return_value = []
-    result = retrieve_article_id(conn, "test.com")
+    result = retrieve_article_id(conn, "www.test.com")
     assert result == None
     assert fake_fetch.call_count == 1
 
