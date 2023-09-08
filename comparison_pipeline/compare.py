@@ -7,13 +7,8 @@ from extract import get_db_connection
 
 
 SCRAPED_DATA_TRANSFORMED = "transformed_data.csv"
-ARTICLE_CHANGES = "article_changes.csv"
-
-
-def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
-    """Returns scraped data from extract"""
-
-    return pd.read_csv(file_path)
+ARTICLES_FROM_DB = "previous_versions.csv"
+SCRAPED_ARTICLES = "scraped_articles_change_pls.csv"
 
 
 def get_latest_version_of_article_from_db_old(conn: connection) -> pd.DataFrame:
@@ -74,19 +69,15 @@ def identify_changes(scraped_df: pd.DataFrame, rds_df: pd.DataFrame) -> pd.DataF
 def compare_data() -> None:
     """Compares scraped data with the data in the db and identifies where there are difference"""
 
-    conn = get_db_connection()
+    db_conn = get_db_connection()
 
-    scraped_data_transformed_df = get_scraped_data_as_df(
-        SCRAPED_DATA_TRANSFORMED)
+    scraped_data = pd.DataFrame(SCRAPED_ARTICLES)
+    previous_versions = pd.DataFrame(ARTICLES_FROM_DB)
 
-    article_data_in_db_df = get_latest_version_of_article_from_db(conn)
-
-    changes_in_article_df = identify_changes(scraped_data_transformed_df,
-                                             article_data_in_db_df)
 
     # changes_in_article_df.to_csv(ARTICLE_CHANGES)
 
-    conn.close()
+    db_conn.close()
 
 
 if __name__ == "__main__":

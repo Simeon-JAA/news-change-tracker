@@ -68,7 +68,7 @@ def scrape_article(article_url: str) -> dict:
     return article_dict
 
 
-def scrape_all_articles(list_of_urls: list) -> pd.DataFrame:
+def scrape_all_articles(urls: list) -> pd.DataFrame:
     """Scrapes article data from a list of URLs and returns a dataframe"""
     article_list = []
 
