@@ -1,5 +1,6 @@
 """Pytest fixtures file"""
 import pytest
+import pandas as pd
 
 @pytest.fixture
 def rss_feed():
