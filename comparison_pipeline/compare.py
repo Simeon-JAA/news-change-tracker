@@ -7,8 +7,7 @@ from extract import get_db_connection
 
 
 SCRAPED_DATA_TRANSFORMED = "transformed_data.csv"
-ARTICLES_FROM_DB = "previous_versions.csv"
-SCRAPED_ARTICLES = "scraped_articles_change_pls.csv"
+ARTICLE_CHANGES = "article_changes.csv"
 
 
 def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
