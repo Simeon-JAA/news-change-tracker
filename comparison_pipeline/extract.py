@@ -1,7 +1,6 @@
 """Extraction file for comparison pipeline"""
 
 from os import environ
-from datetime import datetime
 import re
 
 import pandas as pd
@@ -72,25 +71,24 @@ def scrape_article(article_url: str) -> dict:
     article_dict["headline"] = headline
     article_dict["url"] = article_url
     article_dict["author"] = getattr(author, "text", None)
-    article_dict["scraped_at"] = datetime.now().replace(microsecond=0)
 
     return article_dict
 
 
-def scrape_all_articles(list_of_urls: list[str]) -> pd.DataFrame:
+def scrape_all_articles(urls: list[str]) -> pd.DataFrame:
     """Scrapes article data from a list of URLs and returns a dataframe"""
-
     article_list = []
 
-    for url in list_of_urls:
+    for url in urls:
         try:
             article = scrape_article(url)
+            if article["headline"] and article["body"]:
+                article_list.append(article)
+
         except KeyboardInterrupt:
             raise KeyboardInterrupt("Stopped by user")
         except Exception as exc:
             print(exc)
-
-        article_list.append(article)
 
     return pd.DataFrame(article_list)
 
