@@ -93,3 +93,18 @@ class TestGetURLs:
         assert result == ["url", "url2", "url3"]
 
 
+class TestExtract:
+    """Tests the extract_data function"""
+    
+    @patch("extract.scrape_all_articles")
+    @patch("extract.get_urls_from_article_table")
+    @patch("extract.get_db_connection")
+    def test_extract_calls_close(self, mock_conn, mock_urls, mock_scrape):
+        """Tests that conn.close() is called"""
+        conn = MagicMock()
+        mock_conn.return_value = conn
+        extract_data()
+        assert mock_conn.call_count == 1
+        assert mock_urls.call_count ==1
+        assert mock_scrape.call_count == 1
+        assert conn.close.call_count == 1
