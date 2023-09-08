@@ -77,3 +77,40 @@ def bbc_sport_html():
             "</body>" \
         "</html>"
     return html
+  
+@pytest.fixture
+def mock_dataframe():
+    """Fixture for raw dataframe"""
+    return pd.DataFrame([{
+        "id": "https://www.bbc.co.uk/news/uk-politics-66707569	",
+        "published": "Mon, 04 Sep 2023 12:02:28 GMT",
+        "title": "Angela Rayner handed new role"
+    }])
+
+@pytest.fixture
+def mock_scraped_df():
+    """Fixture for scraped article dataframe"""
+    return pd.DataFrame([{
+        "author" : "By Scooby & Shaggy and Scrappy",
+        "headline" : "headline1",
+        "url" : "www.realurl.com ",
+        "body" : "body1"},
+        {
+        "author" : "NaN",
+        "headline" : "headline2",
+        "url" : " www.realurl.com",
+        "body" : "body2"
+        }])
+
+
+@pytest.fixture
+def mock_loading_df():
+    """Fixture for mock df to be used in testing load"""
+    return pd.DataFrame([{
+        "title" : "title",
+        "url" : "www.test.com",
+        "headline" : "headline",
+        "body" : "body",
+        "author" : "Miss Chanandler Bong",
+        "published" : "2023-09-07 14:05:53+01:00",
+    }])
