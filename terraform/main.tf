@@ -115,3 +115,25 @@ resource "aws_ecs_task_definition" "c8-news-change-tracker-etl-task-definition" 
   ])
 }
 
+resource "aws_ecs_cluster" "c8-news-change-tracker-cluster" {
+  name = "c8-news-change-tracker-cluster"
+}
+
+resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule" {
+  name       = "c8-news-change-tracker-etl-pipeline-schedule"
+  description = "Schedule for the etl pipeline of the news change tracker. When run the db will be updated with new news stories"
+  group_name = "default"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression = "rate(30 minutes)"
+  
+
+  target {
+    arn      = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn
+    role_arn = aws_iam_role.c8-news-change-tracker-ecs-role.arn
+    
+  }
+}
