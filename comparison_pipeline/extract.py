@@ -56,21 +56,10 @@ def scrape_article(article_url: str) -> dict:
         relevant_divs = body.findAll(
             'div', attrs={"data-component": "text-block"})
         text = " ".join(div.find('p').text for div in relevant_divs)
-<<<<<<< HEAD
-        author = body.find(
-            'div', attrs={"class": re.compile(".*TextContributorName")})
-=======
->>>>>>> 3541c6e (refactored transformed)
     else:
         body = soup.find('article')
         if body:
             text = " ".join([p.text for p in body.findAll('p')])
-<<<<<<< HEAD
-            author = body.find(
-                'div', attrs={"class": re.compile(".*TextContributorName")})
-=======
-
->>>>>>> 3541c6e (refactored transformed)
 
     article_dict["body"] = text
     article_dict["headline"] = headline
@@ -79,11 +68,7 @@ def scrape_article(article_url: str) -> dict:
     return article_dict
 
 
-<<<<<<< HEAD
-def scrape_all_articles(urls: list[str]) -> pd.DataFrame:
-=======
 def scrape_all_articles(list_of_urls: list) -> pd.DataFrame:
->>>>>>> 3541c6e (refactored transformed)
     """Scrapes article data from a list of URLs and returns a dataframe"""
     article_list = []
 
@@ -137,30 +122,12 @@ def extract_data() -> None:
     scraped_article_information = scrape_all_articles(url_list)
     previous_versions = get_latest_version_of_article_from_db(db_conn)
 
-<<<<<<< HEAD
-    scraped_article_information.to_csv(
-        SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
-=======
     scraped_article_information.to_csv(SCRAPED_ARTICLES, index=False)
     previous_versions.to_csv(ARTICLES_FROM_DB, index=False)
->>>>>>> 3541c6e (refactored transformed)
 
     db_conn.close()
 
 
 if __name__ == "__main__":
 
-<<<<<<< HEAD
-    conn = get_db_connection()
-
-    url_list = get_urls_from_article_table(conn)
-
-    scraped_article_information = scrape_all_articles(url_list)
-
-    scraped_article_information.to_csv(
-        SCRAPED_ARTICLES_FOR_COMPARISON, index=False)
-
-    conn.close()
-=======
     extract_data()
->>>>>>> 3541c6e (refactored transformed)
