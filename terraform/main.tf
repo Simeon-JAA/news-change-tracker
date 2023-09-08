@@ -59,46 +59,8 @@ resource "aws_ecr_repository" "c8-news-change-tracker-etl-ecr" {
   }
 }
 
-# resource "aws_ecs_task_definition" "c8-news-change-tracker-etl-task-definition" {
-#   family                   = "c8-news-change-tracker-etl-task-definition"
-#   requires_compatibilities = ["FARGATE"]
-#   network_mode             = "awsvpc"
-#   cpu                      = 1024
-#   memory                   = 3072
-#   container_definitions    = [ 
-  #   {
-  #   "name": "c8-news-change-tracker-etl-container",
-  #   "image": "will need to replace with container URI"
-  #   "cpu": 1024,
-  #   "memory": 3072,
-  #   "essential": true,
-  #   "portMappings": [
-  #     {
-  #       "containerPort": 80,
-  #       "hostPort": 5432
-  #     }
-  #   ]
-  #   "environment": [
-  #     {"name": "DB_NAME",
-  #      "value": var.CONTAINER_DB_NAME
-  #     },
-  #     {"name": "DB_USER",
-  #     "value": var.CONTAINER_DB_USER
-  #     },
-  #     {"name": "DB_PASSWORD",
-  #     "value": var.CONTAINER_DB_PASSWORD
-  #     },
-  #     {"name": "DB_PORT",
-  #     "value": var.CONTAINER_DB_PORT
-  #     },
-  #     {"name": "DB_HOST",
-  #     "value": var.CONTAINER_DB_HOST
-  #     }
-  #   ],
-  #   }
-#   ]
-#   runtime_platform {
-#     operating_system_family = "WINDOWS_SERVER_2019_CORE"
-#     cpu_architecture        = "X86_64"
-#   }
-# }
+data "aws_ecr_image" "c8-news-change-tracker-etl-image" {
+  repository_name = aws_ecr_repository.c8-news-change-tracker-etl-ecr.name
+  image_tag       = "latest"
+}
+
