@@ -3,6 +3,7 @@
 from os import environ
 import pandas as pd
 import requests
+import datetime
 from bs4 import BeautifulSoup as bs
 from dotenv import load_dotenv
 from psycopg2 import connect, OperationalError
@@ -10,6 +11,7 @@ from psycopg2.extensions import connection
 
 ARTICLES_FROM_DB = "previous_versions.csv"
 SCRAPED_ARTICLES = "scraped_articles_change_pls.csv"
+TIME_NOW = datetime.datetime.now().replace(microsecond=0)
 
 
 def get_db_connection() -> connection:
@@ -28,6 +30,7 @@ def get_db_connection() -> connection:
         raise Exception()
 
 
+# fix for actual data
 def get_urls_from_article_table(conn: connection) -> list[str]:
     """Connects to the database and returns selected columns of selected table as a list"""
 
@@ -64,6 +67,7 @@ def scrape_article(article_url: str) -> dict:
     article_dict["body"] = text
     article_dict["headline"] = headline
     article_dict["url"] = article_url
+    article_dict["scraped_at"] = TIME_NOW
 
     return article_dict
 
@@ -89,9 +93,9 @@ def scrape_all_articles(urls: list) -> pd.DataFrame:
 def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
     """Returns data from rds database in a dataframe for comparison"""
 
-    cur = conn.cursor()
+    with conn.cursor() as cur:
 
-    cur.execute("""SELECT
+        cur.execute("""SELECT
                 test.article.article_id, test.article.article_url,
                 test.article_version.heading, test.article_version.body,
                 test.article_version.scraped_at
@@ -105,7 +109,7 @@ def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
                 scraped_at
                 ;""")
 
-    data = cur.fetchall()
+        data = cur.fetchall()
 
     return pd.DataFrame(data,
                         columns=["article_id", "article_url", "heading",
