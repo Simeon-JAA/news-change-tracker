@@ -21,8 +21,7 @@ def identify_changes(scraped_df: pd.DataFrame, rds_df: pd.DataFrame) -> pd.DataF
 
     differences = differences.drop(columns=[("article_url", "previous"),("heading","previous"),\
                                 ("body","previous"),("scraped_at","previous")])
-
-    differences.columns = ["article_url", "heading", "body", "scraped_at"]
+    differences.columns = ["body", "heading", "article_url", "scraped_at"]
     return differences
 
 
@@ -30,8 +29,7 @@ def retrieve_article_id(conn: connection, url: str) -> str:
     """Retrieves article_id from the RDS by using the url"""
 
     with conn.cursor() as cur:
-        print(url)
-        cur.execute("""SELECT article_id FROM test.article WHERE article_url = %s""", [url])
+        cur.execute("""SELECT article_id FROM article WHERE article_url = %s""", [url])
         article_id = cur.fetchone()[0]
         return article_id
 
@@ -44,14 +42,15 @@ def compare_data() -> None:
 
         scraped_data = pd.read_csv(SCRAPED_ARTICLES)
         previous_versions = pd.read_csv(ARTICLES_FROM_DB)
-
-        differences = identify_changes(scraped_data, previous_versions)
-        differences["article_id"] = differences["article_url"].apply\
-            (lambda x: retrieve_article_id(db_conn, x))
-        differences = differences.reindex(columns=["scraped_at", "heading", "body", \
-                            "article_id", "article_url"]).drop(columns=["article_url"])
-        differences.to_csv(TRANSFORMED_ARTICLES, index=False)
-
+        if not scraped_data.empty and not previous_versions.empty:
+            differences = identify_changes(scraped_data, previous_versions)
+            differences["article_id"] = differences["article_url"].apply\
+                (lambda x: retrieve_article_id(db_conn, x))
+            differences = differences.reindex(columns=["scraped_at", "heading", "body", \
+                                "article_id", "article_url"]).drop(columns=["article_url"])
+            differences.to_csv(TRANSFORMED_ARTICLES, index=False)
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt("Stopped by user")
     except Exception as exc:
         print(exc)
     finally:

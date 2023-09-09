@@ -10,7 +10,7 @@ from psycopg2 import connect, OperationalError
 from psycopg2.extensions import connection
 
 ARTICLES_FROM_DB = "previous_versions.csv"
-SCRAPED_ARTICLES = "scraped_articles_change_pls.csv"
+SCRAPED_ARTICLES = "scraped_articles.csv"
 TIME_NOW = datetime.datetime.now().replace(microsecond=0)
 
 
@@ -31,12 +31,12 @@ def get_db_connection() -> connection:
 
 
 # fix for actual data
-def get_urls_from_article_table(conn: connection) -> list[str]:
+def get_urls_from_article_table(conn: connection) -> list:
     """Connects to the database and returns selected columns of selected table as a list"""
 
     with conn.cursor() as cur:
         try:
-            cur.execute("SELECT article_url FROM test.article;")
+            cur.execute("SELECT article_url FROM article;")
             result = cur.fetchall()
             result = [url[0] for url in result]
         except (ConnectionError, OperationalError) as err:
@@ -65,8 +65,8 @@ def scrape_article(article_url: str) -> dict:
             text = " ".join([p.text for p in body.findAll('p')])
 
     article_dict["body"] = text
-    article_dict["headline"] = headline
-    article_dict["url"] = article_url
+    article_dict["heading"] = headline
+    article_dict["article_url"] = article_url
     article_dict["scraped_at"] = TIME_NOW
 
     return article_dict
@@ -77,15 +77,9 @@ def scrape_all_articles(urls: list) -> pd.DataFrame:
     article_list = []
 
     for url in urls:
-        try:
-            article = scrape_article(url)
-            if article["headline"] and article["body"]:
-                article_list.append(article)
-
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt("Stopped by user")
-        except Exception as exc:
-            print(exc)
+        article = scrape_article(url)
+        if article["heading"] and article["body"]:
+            article_list.append(article)
 
     return pd.DataFrame(article_list)
 
@@ -95,41 +89,46 @@ def get_latest_version_of_article_from_db(conn: connection) -> pd.DataFrame:
 
     with conn.cursor() as cur:
 
-        cur.execute("""SELECT
-                test.article.article_id, test.article.article_url,
-                test.article_version.heading, test.article_version.body,
-                test.article_version.scraped_at
-                FROM test.article
-                LEFT JOIN test.article_version
-                ON test.article_version.article_id = test.article.article_id
-                WHERE test.article_version.scraped_at = (SELECT MAX(test.article_version.scraped_at)
-                FROM test.article_version WHERE test.article.article_id = test.article_version.article_id)
-                GROUP BY test.article.article_id, test.article.article_url,
-                test.article_version.heading, test.article_version.body,
+        cur.execute("""SELECT article_version.body,
+                article_version.heading, article.article_url,
+                article.article_id,
+                article_version.scraped_at
+                FROM article
+                LEFT JOIN article_version
+                ON article_version.article_id = article.article_id
+                WHERE article_version.scraped_at = (SELECT MAX(article_version.scraped_at)
+                FROM article_version WHERE article.article_id = article_version.article_id)
+                GROUP BY article.article_id, article.article_url,
+                article_version.heading, article_version.body,
                 scraped_at
                 ;""")
 
         data = cur.fetchall()
 
     return pd.DataFrame(data,
-                        columns=["article_id", "article_url", "heading",
-                                 "body", "scraped_at"])
+                        columns=["body", "heading", "article_url", "article_id",
+                                 "scraped_at"])
 
 
 def extract_data() -> None:
     """Contains all functions in extract.py to fulfil whole extract process"""
 
-    db_conn = get_db_connection()
+    try:
+        db_conn = get_db_connection()
 
-    url_list = get_urls_from_article_table(db_conn)
+        url_list = get_urls_from_article_table(db_conn)
+        if len(url_list) > 0:
+            scraped_article_information = scrape_all_articles(url_list)
+            previous_versions = get_latest_version_of_article_from_db(db_conn)
 
-    scraped_article_information = scrape_all_articles(url_list)
-    previous_versions = get_latest_version_of_article_from_db(db_conn)
-
-    scraped_article_information.to_csv(SCRAPED_ARTICLES, index=False)
-    previous_versions.to_csv(ARTICLES_FROM_DB, index=False)
-
-    db_conn.close()
+            scraped_article_information.to_csv(SCRAPED_ARTICLES, index=False)
+            previous_versions.to_csv(ARTICLES_FROM_DB, index=False)
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt("Stopped by user")
+    except Exception as exc:
+        print(exc)
+    finally:
+        db_conn.close()
 
 
 if __name__ == "__main__":
