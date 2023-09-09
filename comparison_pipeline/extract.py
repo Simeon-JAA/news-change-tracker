@@ -1,9 +1,9 @@
 """Extraction file for comparison pipeline"""
 
 from os import environ
+import datetime
 import pandas as pd
 import requests
-import datetime
 from bs4 import BeautifulSoup as bs
 from dotenv import load_dotenv
 from psycopg2 import connect, OperationalError

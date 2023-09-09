@@ -16,8 +16,9 @@ def identify_changes(scraped_df: pd.DataFrame, rds_df: pd.DataFrame) -> pd.DataF
     differences = scraped_df.compare(rds_df.drop(columns=["article_id"]), \
                             result_names=("updated", "previous"), keep_equal=True, keep_shape=True)
 
-    differences = differences[(differences["heading"]["updated"] != differences["heading"]["previous"]) \
-                              | (differences["body"]["updated"] != differences["body"]["previous"])]
+    differences = differences[(differences["heading"]["updated"] != \
+                                differences["heading"]["previous"])
+                    | (differences["body"]["updated"] != differences["body"]["previous"])]
 
     differences = differences.drop(columns=[("article_url", "previous"),("heading","previous"),\
                                 ("body","previous"),("scraped_at","previous")])

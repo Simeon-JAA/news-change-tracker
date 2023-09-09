@@ -1,5 +1,5 @@
 """Loads detected changes into the db"""
-
+# pylint: disable=invalid-name
 import pandas as pd
 from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
