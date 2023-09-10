@@ -6,7 +6,8 @@ from psycopg2.extras import execute_values
 from extract import get_db_connection
 
 
-TRANSFORMED_ARTICLES = "transformed_data.csv"
+TRANSFORMED_ARTICLES_FOR_DB = "transformed_data_for_db.csv"
+TRANSFORMED_ARTICLES_FOR_S3 = "transformed_data_for_s3.csv"
 
 
 def add_to_article_version_table(conn: connection, df: pd.DataFrame) -> None:
