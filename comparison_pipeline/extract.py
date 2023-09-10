@@ -30,7 +30,6 @@ def get_db_connection() -> connection:
         raise Exception()
 
 
-# fix for actual data
 def get_urls_from_article_table(conn: connection) -> list:
     """Connects to the database and returns selected columns of selected table as a list"""
 
