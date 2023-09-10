@@ -116,6 +116,8 @@ def extract_data() -> None:
         db_conn = get_db_connection()
 
         url_list = get_urls_from_article_table(db_conn)
+        scraped_article_information = pd.DataFrame()
+        previous_versions = pd.DataFrame()
         if len(url_list) > 0:
             scraped_article_information = scrape_all_articles(url_list)
             previous_versions = get_latest_version_of_article_from_db(db_conn)
