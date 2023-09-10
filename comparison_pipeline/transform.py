@@ -41,8 +41,6 @@ def format_comparison(df: pd.DataFrame, conn: connection) -> pd.DataFrame:
     if not all_changes.empty:
         all_changes = all_changes.reindex(columns=["article_url", "type_of_change", "previous", \
         "current", "previous_scraped_at", "current_scraped_at"])
-        all_changes["article_id"] = all_changes["article_url"].apply(lambda x:\
-                                                    retrieve_article_id(conn, x))
 
     return all_changes
 
