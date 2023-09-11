@@ -297,3 +297,27 @@ resource "aws_ecs_task_definition" "c8-news-change-tracker-dashboard-task-defini
     }
   ])
 }
+
+resource "aws_ecs_service" "c8-news-change-tracker-dashboard-service" {
+  name            = "c8-news-change-tracker-dashboard-service"
+  cluster         = aws_ecs_cluster.c8-news-change-tracker-cluster.id
+  task_definition = aws_ecs_task_definition.c8-news-change-tracker-dashboard-task-definition.arn
+  desired_count   = 3
+  iam_role        = aws_iam_role.c8-news-change-tracker-ecs-role.arn
+
+  network_configuration {
+    subnets = ["subnet-0667517a2a13e2a6b", "subnet-0cec5bdb9586ed3c4", "subnet-03b1a3e1075174995"]
+    assign_public_ip = true
+    security_groups = [ aws_security_group.c8-news-change-tracker-scheduler-sg.id ]
+  }
+
+  ordered_placement_strategy {
+    type  = "binpack"
+    field = "cpu"
+  }
+
+  placement_constraints {
+    type       = "memberOf"
+    expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
+  }
+}
