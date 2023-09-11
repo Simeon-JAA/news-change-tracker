@@ -146,7 +146,7 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule"
     mode = "OFF"
   }
 
-  schedule_expression = "rate(30 minutes)"
+  schedule_expression = "cron(*/30 * * * ? *)"
   
 
   target {
@@ -154,7 +154,7 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule"
     role_arn = "arn:aws:iam::129033205317:role/service-role/Amazon_EventBridge_Scheduler_ECS_8655dce22e"
 
     ecs_parameters {
-      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn
+      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn + ""
       launch_type = "FARGATE"
       task_count = 1
 
@@ -216,4 +216,38 @@ resource "aws_ecs_task_definition" "c8-news-change-tracker-comparison-pipeline-t
     ]
     }
   ])
+}
+
+resource "aws_scheduler_schedule" "c8-news-change-tracker-comparison-pipeline-schedule" {
+  name       = "c8-news-change-tracker-comparison-pipeline-schedule"
+  description = "Schedule for the comparison pipeline of the news change tracker. When run, the data in the db will be compared against the current state of the data on the web."
+  group_name = "default"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression = "cron(* 1 * * ? *)"
+  
+  target {
+    arn      = aws_ecs_cluster.c8-news-change-tracker-cluster.arn
+    role_arn = "arn:aws:iam::129033205317:role/service-role/Amazon_EventBridge_Scheduler_ECS_8655dce22e"
+
+    ecs_parameters {
+      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-comparison-pipeline-task-definition.arn
+      launch_type = "FARGATE"
+      task_count = 1
+
+     network_configuration {
+      subnets = ["subnet-0667517a2a13e2a6b", "subnet-0cec5bdb9586ed3c4", "subnet-03b1a3e1075174995"]
+      assign_public_ip = true
+      security_groups = [ aws_security_group.c8-news-change-tracker-scheduler-sg.id ]
+     }
+     
+    }
+    retry_policy {
+      maximum_retry_attempts = 5
+      maximum_event_age_in_seconds = 3600
+    }
+  }
 }
