@@ -404,6 +404,7 @@ resource "aws_ecs_service" "c8-news-change-tracker-dashboard-service" {
   task_definition = aws_ecs_task_definition.c8-news-change-tracker-dashboard-task-definition.arn
   desired_count   = 3
   iam_role        = aws_iam_role.c8-news-change-tracker-ecs-role.arn
+  depends_on = [ aws_iam_role_policy.c8-news-tracker-authorization-token-policy.arn ]
 
   network_configuration {
     subnets = ["subnet-0667517a2a13e2a6b", "subnet-0cec5bdb9586ed3c4", "subnet-03b1a3e1075174995"]
