@@ -171,7 +171,7 @@ resource "aws_iam_role" "c8-news-change-tracker-ecs-role" {
         Effect = "Allow"
         Sid    = ""
         Principal = {
-          Service = "ec2.amazonaws.com"
+          Service = "ecs-tasks.amazonaws.com"
         }
       },
     ]
