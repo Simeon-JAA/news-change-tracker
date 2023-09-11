@@ -158,7 +158,7 @@ resource "aws_iam_role_policy" "c8-news-tracker-cloud-log-policy" {
 			"Resource": "arn:aws:logs:*:129033205317:log-group:*"
 		}
 	]
-})
+  })
 }
 
 resource "aws_iam_role" "c8-news-change-tracker-ecs-role" {
@@ -237,6 +237,56 @@ resource "aws_security_group" "c8-news-change-tracker-scheduler-sg" {
   }
 }
 
+resource "aws_iam_role_policy" "c8-news-tracker-scheduler-policy" {
+  name        = "c8-news-tracker-scheduler-policy"
+  role = aws_iam_role.c8-news-change-tracker-scheduler-role.name
+  policy = jsonencode({
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "VisualEditor0",
+			"Effect": "Allow",
+			"Action": [
+				"scheduler:ListSchedules",
+				"scheduler:ListScheduleGroups"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "VisualEditor1",
+			"Effect": "Allow",
+			"Action": [
+				"scheduler:ListTagsForResource",
+				"scheduler:GetSchedule",
+				"scheduler:*",
+				"scheduler:GetScheduleGroup"
+			],
+			"Resource": [
+				"arn:aws:scheduler:*:129033205317:schedule-group/*",
+				"arn:aws:scheduler:*:129033205317:schedule/*/*"
+			]
+		}
+	]
+})
+}
+
+resource "aws_iam_role" "c8-news-change-tracker-scheduler-role" {
+  name = "c8-news-change-tracker-scheduler-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "events.amazonaws.co"
+        }
+      },
+    ]
+  })
+}
+
 resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule" {
   name       = "c8-news-change-tracker-etl-pipeline-schedule"
   description = "Schedule for the etl pipeline of the news change tracker. When run the db will be updated with new news stories"
@@ -251,7 +301,7 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule"
 
   target {
     arn      = aws_ecs_cluster.c8-news-change-tracker-cluster.arn
-    role_arn = "arn:aws:iam::129033205317:role/service-role/Amazon_EventBridge_Scheduler_ECS_8655dce22e"
+    role_arn = aws_iam_role.c8-news-change-tracker-scheduler-role.arn
 
     ecs_parameters {
       task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn_without_revision
