@@ -39,9 +39,9 @@ def add_to_article_change_table(conn: connection, df: pd.DataFrame) -> None:
 
     with conn.cursor() as cur:
         changes = df.to_records(index=False)
-        execute_values(cur, """INSERT INTO article_change (article_url, change_type,
-                        previous_version, current_version, last_scraped, \
-                       current_scraped, proportion_changed) VALUES %s;""", \
+        execute_values(cur, """INSERT INTO changes.article_change (article_id, \
+                    article_url, change_type, previous_version, current_version,\
+                    last_scraped, current_scraped, similarity) VALUES %s;""", \
                         changes)
         conn.commit()
 
@@ -61,12 +61,11 @@ def load_data() -> None:
             add_to_article_version_table(db_conn, article_version)
         if not article_change.empty:
             article_change["article_id"] = article_change["article_id"].map(str)
+            article_change["similarity"] = article_change["similarity"].map(str)
             add_to_article_change_table(db_conn, article_change)
 
     except KeyboardInterrupt:
         raise KeyboardInterrupt("Stopped by user")
-    except Exception as exc:
-        print(exc)
     finally:
         db_conn.close()
 

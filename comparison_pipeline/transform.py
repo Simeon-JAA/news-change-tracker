@@ -5,7 +5,7 @@ from psycopg2.extensions import connection
 from extract import get_db_connection
 
 
-TRANSFORMED_ARTICLES_FOR_DB = "transformed_data_for_db.csv"
+TRANSFORMED_ARTICLES_FOR_ARTICLE_VERSION = "transformed_data_for_a_v.csv"
 ARTICLES_FOR_COMPARISON = "articles_for_comparison.csv"
 ARTICLES_FROM_DB = "previous_versions.csv"
 SCRAPED_ARTICLES = "scraped_articles.csv"
@@ -41,7 +41,7 @@ def format_comparison(df: pd.DataFrame, conn: connection) -> pd.DataFrame:
     if not all_changes.empty:
         all_changes["article_id"] = all_changes["article_url"].apply(lambda x: \
                                     retrieve_article_id(conn, x))
-        all_changes = all_changes.reindex(columns=["article_url", "article_id", \
+        all_changes = all_changes.reindex(columns=["article_id", "article_url", \
         "type_of_change", "previous", "current", "previous_scraped_at", "current_scraped_at"])
 
     return all_changes
@@ -122,7 +122,7 @@ def transform_data() -> None:
                 df_for_article_version = format_article_version_update(differences, db_conn)
                 df_for_comparison = format_comparison(differences, db_conn)
 
-            df_for_article_version.to_csv(TRANSFORMED_ARTICLES_FOR_DB, index=False)
+            df_for_article_version.to_csv(TRANSFORMED_ARTICLES_FOR_ARTICLE_VERSION, index=False)
             df_for_comparison.to_csv(ARTICLES_FOR_COMPARISON, index=False)
     except KeyboardInterrupt:
         raise KeyboardInterrupt("Stopped by user")

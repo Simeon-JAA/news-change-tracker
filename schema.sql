@@ -53,6 +53,6 @@ CREATE TABLE IF NOT EXISTS article_change (
     current_version TEXT NOT NULL,
     last_scraped TIMESTAMPTZ NOT NULL,
     current_scraped TIMESTAMPTZ NOT NULL,
-    proportion_changed NUMERIC(1,4) NOT NULL,
+    similarity FLOAT NOT NULL,
     PRIMARY KEY (article_change_id)
-\);
+);
