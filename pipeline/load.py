@@ -6,6 +6,7 @@ import re
 import pandas as pd
 from dotenv import load_dotenv
 from psycopg2 import connect
+from psycopg2 import connect
 from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 
@@ -182,6 +183,12 @@ def load_data():
     finally:
         db_conn.close()
 
+# hardcode
+
+def add_to_authors_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
+    """Converts df into tuples, then adds to authors table.
+    NB: needs article_id column converted into foreign key reference"""
+    pass
 
 if __name__ == "__main__":
     load_data()
