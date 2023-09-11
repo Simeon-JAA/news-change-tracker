@@ -119,6 +119,24 @@ resource "aws_ecs_cluster" "c8-news-change-tracker-cluster" {
   name = "c8-news-change-tracker-cluster"
 }
 
+resource "aws_security_group" "c8-news-change-tracker-scheduler-sg" {
+  name = "c8-news-change-tracker-scheduler-sg"
+  description = "Security group that listens on all ports inbound and outbound"
+  vpc_id = "vpc-0e0f897ec7ddc230d"
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule" {
   name       = "c8-news-change-tracker-etl-pipeline-schedule"
   description = "Schedule for the etl pipeline of the news change tracker. When run the db will be updated with new news stories"
@@ -132,8 +150,24 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule"
   
 
   target {
-    arn      = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn
-    role_arn = aws_iam_role.c8-news-change-tracker-ecs-role.arn
-    
+    arn      = aws_ecs_cluster.c8-news-change-tracker-cluster.arn
+    role_arn = "arn:aws:iam::129033205317:role/service-role/Amazon_EventBridge_Scheduler_ECS_8655dce22e"
+
+    ecs_parameters {
+      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn
+      launch_type = "FARGATE"
+      task_count = 1
+
+     network_configuration {
+      subnets = ["subnet-0667517a2a13e2a6b", "subnet-0cec5bdb9586ed3c4", "subnet-03b1a3e1075174995"]
+      assign_public_ip = true
+      security_groups = [ aws_security_group.c8-news-change-tracker-scheduler-sg.id ]
+     }
+     
+    }
+    retry_policy {
+      maximum_retry_attempts = 5
+      maximum_event_age_in_seconds = 3600
+    }
   }
 }
