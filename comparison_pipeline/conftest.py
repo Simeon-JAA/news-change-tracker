@@ -34,18 +34,20 @@ def bbc_html():
 def bbc_article_dict():
     """bbc article returned dict fixture"""
     return {"body" : "text",
-            "headline" : "headline",
-            "url" : "fakeurl.com",
-            "author" : "scoobert doobert"}
+            "heading" : "headline",
+            "article_url" : "www.fakeurl.com"
+            "scraped_at" "fake time",
+            }
 
 
 @pytest.fixture
 def bbc_sport_dict():
     """bbc sport article returned dict fixture"""
     return {"body" : "text",
-            "headline" : "headline",
-            "url" : "fakeurl.com",
-            "author" : None}
+            "heading" : "headline",
+            "article_url" : "www.fakeurl.com"
+            "scraped_at" "fake time",
+            }
 
 @pytest.fixture
 def bbc_sport_html():

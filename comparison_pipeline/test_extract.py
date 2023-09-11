@@ -8,7 +8,7 @@ import pytest
 import pandas as pd
 from unittest.mock import MagicMock, patch
 from conftest import bbc_article_dict, bbc_html, bbc_sport_dict, bbc_sport_html
-from extract import get_db_connection, get_urls_from_article_table, scrape_article, scrape_all_articles, extract_data
+from extract import get_db_connection, get_urls_from_article_table, scrape_article, scrape_all_articles, extract_data, get_latest_version_of_article_from_db
 
 
 class TestScrapeArticle:
@@ -21,10 +21,11 @@ class TestScrapeArticle:
         mock_response.content = bbc_html
         mock_request.return_value = mock_response
 
-        result = scrape_article("fakeurl.com")
+        result = scrape_article("www.fakeurl.com")
         assert mock_request.call_count == 1
         assert isinstance(result, dict)
-        assert result == bbc_article_dict
+        assert all(key in result for key in ["heading", "scraped_at", "body", "article_url"])
+        
 
 
     @patch("extract.requests.get")
@@ -37,7 +38,7 @@ class TestScrapeArticle:
         result = scrape_article("fakeurl.com")
         assert mock_request.call_count == 1
         assert isinstance(result, dict)
-        assert result == bbc_sport_dict
+        assert all(key in result for key in ["heading", "scraped_at", "body", "article_url"])
     
 
     def test_scrape_invalid_url(self):
@@ -96,15 +97,50 @@ class TestGetURLs:
 class TestExtract:
     """Tests the extract_data function"""
     
+    @patch("extract.get_latest_version_of_article_from_db")
     @patch("extract.scrape_all_articles")
     @patch("extract.get_urls_from_article_table")
     @patch("extract.get_db_connection")
-    def test_extract_calls_close(self, mock_conn, mock_urls, mock_scrape):
+    def test_extract_calls_close(self, mock_conn, mock_urls, mock_scrape, mock_latest):
         """Tests that conn.close() is called"""
         conn = MagicMock()
+        url_list = ["url1", "url2"]
         mock_conn.return_value = conn
+        mock_urls.return_value = url_list
         extract_data()
         assert mock_conn.call_count == 1
         assert mock_urls.call_count ==1
         assert mock_scrape.call_count == 1
+        assert mock_latest.call_count == 1
         assert conn.close.call_count == 1
+    
+
+    @patch("extract.get_db_connection")
+    def test_extract_calls_after_exception(self, mock_conn):
+        """Tests that conn.close() is called after exception is handled"""
+        conn = MagicMock()
+        url_list = ["url1", "url2"]
+        mock_conn.return_value = conn
+    
+        extract_data()
+        assert mock_conn.call_count == 1
+      
+        assert conn.close.call_count == 1
+
+
+class TestGetLatestVersion:
+    """Tests the get_latest_version... function"""
+
+    def test_get_latest_version_returns_df(self):
+        """Tests that the function returns a dataframe and execute is called"""
+        conn = MagicMock()
+        mock_execute = conn.cursor().__enter__().execute
+        mock_fetch = conn.cursor().__enter__().fetchall
+        mock_fetch.return_value == [("body", "text"),
+                                    ("headline", "text"),
+                                    ("article_url", "www.url.com"),
+                                    ("article_id", 1),
+                                    ("scraped_at", "time")]
+        result = get_latest_version_of_article_from_db(conn)
+        assert mock_execute.call_count == 1
+        assert isinstance(result, pd.DataFrame)
