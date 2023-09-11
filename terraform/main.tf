@@ -66,26 +66,38 @@ resource "aws_iam_role" "c8-news-change-tracker-ecs-role" {
 	"Version": "2012-10-17",
 	"Statement": [
 		{
+			"Sid": "VisualEditor0",
 			"Effect": "Allow",
 			"Action": [
-				"ecr:GetAuthorizationToken",
-				"ecr:BatchCheckLayerAvailability",
-				"ecr:GetDownloadUrlForLayer",
-				"ecr:GetRepositoryPolicy",
-				"ecr:DescribeRepositories",
-				"ecr:ListImages",
-				"ecr:DescribeImages",
-				"ecr:BatchGetImage",
-				"ecr:GetLifecyclePolicy",
-				"ecr:GetLifecyclePolicyPreview",
-				"ecr:ListTagsForResource",
 				"ecr:DescribeImageScanFindings",
-				"ecr:InitiateLayerUpload",
+				"ecr:GetLifecyclePolicyPreview",
+				"ecr:GetDownloadUrlForLayer",
+				"ecr:GetAuthorizationToken",
+				"ecr:ListTagsForResource",
 				"ecr:UploadLayerPart",
+				"ecr:ListImages",
+				"ecr:PutImage",
+				"logs:CreateLogDelivery",
+				"ecr:BatchGetImage",
 				"ecr:CompleteLayerUpload",
-				"ecr:PutImage"
+				"ecr:DescribeImages",
+				"ecr:DescribeRepositories",
+				"ecr:InitiateLayerUpload",
+				"ecr:BatchCheckLayerAvailability",
+				"ecr:GetRepositoryPolicy",
+				"ecr:GetLifecyclePolicy"
 			],
 			"Resource": "*"
+		},
+		{
+			"Sid": "VisualEditor1",
+			"Effect": "Allow",
+			"Action": [
+				"logs:CreateExportTask",
+				"logs:CreateLogStream",
+				"logs:CreateLogGroup"
+			],
+			"Resource": "arn:aws:logs:*:129033205317:log-group:*"
 		}
 	]
 }
