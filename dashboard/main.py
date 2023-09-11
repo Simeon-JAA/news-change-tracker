@@ -28,7 +28,7 @@ def retrieve_article_info(conn: connection) -> pd.DataFrame:
 
         cur.execute("""SELECT ar.article_id, ar.article_url,
                     ar.source, ar.created_at
-                FROM article;""")
+                FROM article ar;""")
 
         data = cur.fetchall()
 
@@ -43,7 +43,7 @@ def retrieve_article_changes(conn: connection) -> pd.DataFrame:
 
         cur.execute("""SELECT article_id, article_url, change_type,\
             previous_version, current_version, last_scraped, current_scraped,
-                    similarity;""")
+                    similarity FROM changes.article_change;""")
 
         data = cur.fetchall()
 
@@ -59,9 +59,9 @@ def retrieve_author(conn: connection, article_id: int) -> list:
         cur.execute("""SELECT au.author_name
                     FROM author au JOIN article_author aa ON au.author_id
                     = aa.author_id JOIN article ar ON ar.article_id =
-                    aa.article_id WHERE aa.article_id = %s;""", article_id)
+                    aa.article_id WHERE aa.article_id = %s;""", [article_id])
         authors = cur.fetchall()
-        return authors
+        return [author[0] for author in authors]
 
 
 def highlighted_text() -> None:
@@ -98,7 +98,21 @@ fruits
 def display() -> None:
     """Displays the dashboard"""
 
-    highlighted_text()
+    try:
+        db_conn = get_db_connection()
+
+        article_changes = retrieve_article_changes(db_conn)
+        articles = retrieve_article_info(db_conn)
+        articles.to_csv("testing.csv")
+        articles["authors"] = articles["article_id"].apply(lambda x:\
+                                retrieve_author(db_conn, x))
+        print(articles)
+
+    except KeyboardInterrupt:
+        print("User stopped the program.")
+    finally:
+        db_conn.close()
+
 
 
 if __name__ == "__main__":
