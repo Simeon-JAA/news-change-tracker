@@ -63,17 +63,31 @@ resource "aws_iam_role" "c8-news-change-tracker-ecs-role" {
   name = "c8-news-change-tracker-ecs-role"
   assume_role_policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ecs-tasks.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ecr:GetAuthorizationToken",
+				"ecr:BatchCheckLayerAvailability",
+				"ecr:GetDownloadUrlForLayer",
+				"ecr:GetRepositoryPolicy",
+				"ecr:DescribeRepositories",
+				"ecr:ListImages",
+				"ecr:DescribeImages",
+				"ecr:BatchGetImage",
+				"ecr:GetLifecyclePolicy",
+				"ecr:GetLifecyclePolicyPreview",
+				"ecr:ListTagsForResource",
+				"ecr:DescribeImageScanFindings",
+				"ecr:InitiateLayerUpload",
+				"ecr:UploadLayerPart",
+				"ecr:CompleteLayerUpload",
+				"ecr:PutImage"
+			],
+			"Resource": "*"
+		}
+	]
 }
 EOF
 }
