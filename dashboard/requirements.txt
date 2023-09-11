@@ -1,3 +1,4 @@
 python-dotenv
 psycopg2
 streamlit
+st-annotated-text
