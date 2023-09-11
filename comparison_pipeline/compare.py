@@ -1,8 +1,8 @@
 """Main file for analysis on modified articles"""
 
+from difflib import unified_diff
 from rapidfuzz.fuzz import ratio
 import pandas as pd
-from difflib import unified_diff
 
 ARTICLES_FOR_COMPARISON = "articles_for_comparison.csv"
 TRANSFORMED_ARTICLES_FOR_ARTICLE_CHANGE = "transformed_data_for_a_c.csv"

@@ -2,9 +2,8 @@
 # pylint: disable=invalid-name
 from os import environ
 from dotenv import load_dotenv
-from psycopg2 import connect
-from psycopg2.extensions import connection
 import pandas as pd
+from psycopg2 import connect
 from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 
