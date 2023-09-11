@@ -104,7 +104,7 @@ def retrieve_article_id(conn: connection, url: str) -> str:
         return article_id
 
 
-def compare_data() -> None:
+def transform_data() -> None:
     """Compares scraped data with the data in the db and identifies where there are difference"""
 
     try:
@@ -134,4 +134,4 @@ def compare_data() -> None:
 
 if __name__ == "__main__":
 
-    compare_data()
+    transform_data()

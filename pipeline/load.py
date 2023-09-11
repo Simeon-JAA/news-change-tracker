@@ -88,7 +88,7 @@ def retrieve_author_id(conn: connection, name: str) -> str:
 
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT author_id from author where author_name = %s""", [name])
+            """SELECT author_id from author where author_name = %s;""", [name])
         author_id = cur.fetchall()
         if len(author_id) == 1:
             return author_id[0][0]
@@ -100,7 +100,7 @@ def retrieve_article_id(conn: connection, url: str) -> str:
 
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT article_id from article where article_url = %s""", [url])
+            """SELECT article_id from article where article_url = %s;""", [url])
         url = cur.fetchall()
         if len(url) == 1:
             return url[0][0]

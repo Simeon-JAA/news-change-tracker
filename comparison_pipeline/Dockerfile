@@ -6,6 +6,7 @@ RUN pip3 install -r requirements.txt
 
 COPY extract.py .
 COPY load.py .
+COPY transform.py .
 COPY compare.py .
 COPY main.py .
 
