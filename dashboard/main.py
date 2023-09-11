@@ -21,8 +21,46 @@ def get_db_connection() -> connection:
                        dbname=environ["DB_NAME"])
 
 
-def retrieve_article_info() -> pd.DataFrame:
+def retrieve_article_info(conn: connection) -> pd.DataFrame:
     """Retrieves all article information. Returns dataframe"""
+
+    with conn.cursor() as cur:
+
+        cur.execute("""SELECT ar.article_id, ar.article_url,
+                    ar.source, ar.created_at
+                FROM article;""")
+
+        data = cur.fetchall()
+
+    return pd.DataFrame(data, columns=["article_id", "article_url",\
+                                "source", "created_at"])
+
+
+def retrieve_article_changes(conn: connection) -> pd.DataFrame:
+    """Retrieves article information from article_change"""
+
+    with conn.cursor() as cur:
+
+        cur.execute("""SELECT article_id, article_url, change_type,\
+            previous_version, current_version, last_scraped, current_scraped,
+                    similarity;""")
+
+        data = cur.fetchall()
+
+    return
+
+
+def retrieve_author(conn: connection, article_id: int) -> list:
+    """Retrieves authors for selected article_id. Returns a list"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT au.author_name
+                    FROM author au JOIN article_author aa ON au.author_id
+                    = aa.author_id JOIN article ar ON ar.article_id =
+                    aa.article_id WHERE aa.article_id = %s;""", article_id)
+        authors = cur.fetchall()
+        return authors
+
 
 def highlighted_text() -> None:
     """Displays highlighted changes side by side"""
