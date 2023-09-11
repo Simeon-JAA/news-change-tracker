@@ -381,7 +381,7 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-comparison-pipeline-sc
   
   target {
     arn      = aws_ecs_cluster.c8-news-change-tracker-cluster.arn
-    role_arn = "arn:aws:iam::129033205317:role/service-role/Amazon_EventBridge_Scheduler_ECS_8655dce22e"
+    role_arn = aws_iam_role.c8-news-change-tracker-scheduler-role.arn
 
     ecs_parameters {
       task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-comparison-pipeline-task-definition.arn_without_revision
