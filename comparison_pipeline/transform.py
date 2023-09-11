@@ -1,54 +1,135 @@
-"""Transforms the data by cleaning and adding necessary fields before it goes to comparison stage"""
-
+"""Comparison file to compare scraped data with data in the db"""
+# pylint: disable=invalid-name
 import pandas as pd
+from psycopg2.extensions import connection
+from extract import get_db_connection
 
 
-SCRAPED_DATA_FOR_COMPARISON = "scraped_articles_for_comparison.csv"
-SCRAPED_DATA_TO_CSV_NAME = "scraped_articles_for_comparison_transformed.csv"
+TRANSFORMED_ARTICLES_FOR_DB = "transformed_data_for_db.csv"
+ARTICLES_FOR_COMPARISON = "articles_for_comparison.csv"
+ARTICLES_FROM_DB = "previous_versions.csv"
+SCRAPED_ARTICLES = "scraped_articles.csv"
 
 
-def get_scraped_data_as_df(file_path: str) -> pd.DataFrame:
-    """Returns scraped data as df before cleaning"""
+def identify_changes(scraped_df: pd.DataFrame, rds_df: pd.DataFrame) -> pd.DataFrame:
+    """Identifies changes in the scraped df and returns a df with the article changes"""
 
-    return pd.read_csv(file_path)
-
-
-def format_authors(authors: str) -> list[str]:
-    """Returns a list of authors if they exist and ['No Author'] if none detected"""
-
-    if authors.lower() == "nan":
-        return None
-
-    if authors[:3].lower() == "by ":
-        authors = authors.lower().replace("by ", "", 1).replace(" &", ",")
-    authors = authors.replace(" and", ",")
-    authors = authors.split(", ")
-    authors.sort()
-
-    authors = list(map(lambda author: author.title(), authors))
-
-    return authors
+    differences = scraped_df.compare(rds_df.drop(columns=["article_id"]), \
+                            result_names=("updated", "previous"), keep_equal=True, keep_shape=True)
 
 
-def format_scraped_articles_df(scraped_articles_df: pd.DataFrame) -> pd.DataFrame:
-    """Formats scraped_articles dataframe columns before saving to csv df for comparison"""
+    differences = differences[(differences["heading"]["updated"] != \
+                                differences["heading"]["previous"])
+                    | (differences["body"]["updated"] != differences["body"]["previous"])]
+    differences = differences.drop(columns=[("article_url", "previous")])
 
-    scraped_articles_df["url"] = scraped_articles_df["url"].apply(lambda url: url.strip())
+    return differences
 
-    scraped_articles_df["author"] = scraped_articles_df["author"].apply(lambda author: str(author))
-    scraped_articles_df["author"] = scraped_articles_df["author"].apply(format_authors)
 
-    return scraped_articles_df
+def format_comparison(df: pd.DataFrame, conn: connection) -> pd.DataFrame:
+    """Prepares the differences dataframe for further analysis.
+    Returns a dataframe"""
+
+    headline_changes = changes_to_article(df, "heading", "body")
+
+    body_changes = changes_to_article(df, "body", "heading")
+
+    both_changes = double_change_to_article(df)
+
+    all_changes = pd.concat([headline_changes, body_changes, both_changes])
+
+    if not all_changes.empty:
+        all_changes["article_id"] = all_changes["article_url"].apply(lambda x: \
+                                    retrieve_article_id(conn, x))
+        all_changes = all_changes.reindex(columns=["article_url", "article_id", \
+        "type_of_change", "previous", "current", "previous_scraped_at", "current_scraped_at"])
+
+    return all_changes
+
+
+def changes_to_article(df: pd.DataFrame, type_of_change: str, removing: str) -> pd.DataFrame:
+    """Keeps only desired type of change done to the articles. Returns formatted df"""
+
+    changes = df[df[removing]["previous"] == df[removing]["updated"]].copy()
+    if not changes.empty:
+        changes = changes.drop(columns=[removing])
+        changes["type_of_change"] = type_of_change
+        changes.columns = ["current", "previous", "article_url", \
+                    "current_scraped_at", "previous_scraped_at", "type_of_change"]
+
+    return changes
+
+
+def double_change_to_article(df: pd.DataFrame) -> pd.DataFrame:
+    """Refactors dataframe to reflect changes done to both body and headline from same
+    scraping. Returns formatted df"""
+
+    changes = df[(df["heading"]["previous"] != df["heading"]["updated"]) & \
+                      (df["body"]["previous"] != df["body"]["updated"])]
+    if not changes.empty:
+        heading_changes = changes.copy().drop(columns=["body"])
+        heading_changes["type_of_change"] = "heading"
+        heading_changes.columns = ["current", "previous", "article_url", \
+                    "current_scraped_at", "previous_scraped_at", "type_of_change"]
+
+        body_changes = changes.copy().drop(columns=["heading"])
+        body_changes["type_of_change"] = "body"
+        body_changes.columns = ["current", "previous", "article_url", \
+                    "current_scraped_at", "previous_scraped_at", "type_of_change"]
+
+        changes = pd.concat([heading_changes, body_changes])
+    return changes
+
+
+def format_article_version_update(df: pd.DataFrame, conn: connection) -> pd.DataFrame:
+    """Prepares the differences dataframe to fit for the article_version table in RDS.
+    Returns a dataframe"""
+    df = df.copy()
+    df = df.drop(columns=[("heading","previous"),\
+                                ("body","previous"),("scraped_at","previous")])
+    df.columns = ["body", "heading", "article_url", "scraped_at"]
+    df["article_id"] = df["article_url"].apply(lambda x: retrieve_article_id(conn, x))
+    df.drop(columns=["article_url"], inplace=True)
+    df = df.reindex(columns=["scraped_at", "heading", "body", "article_id"])
+
+    return df
+
+
+def retrieve_article_id(conn: connection, url: str) -> str:
+    """Retrieves article_id from the RDS by using the url"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT article_id FROM article WHERE article_url = %s""", [url])
+        article_id = cur.fetchone()[0]
+        return article_id
 
 
 def transform_data() -> None:
-    """Combines all functions from transform.py to transform data in one function"""
+    """Compares scraped data with the data in the db and identifies where there are difference"""
 
-    scraped_data =get_scraped_data_as_df(SCRAPED_DATA_FOR_COMPARISON)
+    try:
+        db_conn = get_db_connection()
 
-    scraped_data = format_scraped_articles_df(scraped_data)
+        scraped_data = pd.read_csv(SCRAPED_ARTICLES)
+        previous_versions = pd.read_csv(ARTICLES_FROM_DB)
 
-    scraped_data.to_csv("transformed_data.csv")
+        if not scraped_data.empty and not previous_versions.empty:
+            differences = identify_changes(scraped_data, previous_versions)
+            df_for_article_version = pd.DataFrame()
+            df_for_comparison = pd.DataFrame()
+
+            if not differences.empty:
+                df_for_article_version = format_article_version_update(differences, db_conn)
+                df_for_comparison = format_comparison(differences, db_conn)
+
+            df_for_article_version.to_csv(TRANSFORMED_ARTICLES_FOR_DB, index=False)
+            df_for_comparison.to_csv(ARTICLES_FOR_COMPARISON, index=False)
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt("Stopped by user")
+    except Exception as exc:
+        print(exc)
+    finally:
+        db_conn.close()
 
 
 if __name__ == "__main__":

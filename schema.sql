@@ -37,3 +37,22 @@ CREATE TABLE IF NOT EXISTS article_version (
     PRIMARY KEY(article_version_id),
     FOREIGN KEY (article_id) REFERENCES article(article_id)
 );
+
+CREATE SCHEMA changes;
+
+SET SEARCH_PATH TO changes;
+
+CREATE TYPE change_types AS ENUM ('body', 'heading');
+
+CREATE TABLE IF NOT EXISTS article_change (
+    article_change_id INT GENERATED ALWAYS AS IDENTITY,
+    article_id INT NOT NULL,
+    article_url TEXT NOT NULL,
+    change_type change_types,
+    previous_version TEXT NOT NULL,
+    current_version TEXT NOT NULL,
+    last_scraped TIMESTAMPTZ NOT NULL,
+    current_scraped TIMESTAMPTZ NOT NULL,
+    proportion_changed NUMERIC(1,4) NOT NULL,
+    PRIMARY KEY (article_change_id)
+\);
