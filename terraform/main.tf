@@ -251,3 +251,49 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-comparison-pipeline-sc
     }
   }
 }
+
+resource "aws_ecr_repository" "c8-news-change-tracker-dashboard-ecr" {
+  name                 = "c8-news-change-tracker-dashboard-ecr"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = false
+  }
+}
+
+resource "aws_ecs_task_definition" "c8-news-change-tracker-dashboard-task-definition" {
+  family                   = "c8-news-change-tracker-dashboard-task-definition"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 1024
+  memory                   = 3072
+  task_role_arn = aws_iam_role.c8-news-change-tracker-ecs-role.arn
+  execution_role_arn = aws_iam_role.c8-news-change-tracker-ecs-role.arn
+  
+  container_definitions    = jsonencode(
+  [ 
+    {
+    "name": "c8-news-change-tracker-dashboard-container",
+    "image": "129033205317.dkr.ecr.eu-west-2.amazonaws.com/c8-news-change-tracker-dashboard-ecr:latest"
+    "cpu": 1024,
+    "memory": 3072,
+    "essential": true,
+    "portMappings": [
+      {
+        "containerPort": 80,
+        "hostPort": 80,
+      }, {
+        "containerPort": 5432,
+        "hostPort": 5432,
+      }
+    ]
+    "environment": [
+      {"name": "DB_NAME", "value": var.CONTAINER_DB_NAME},
+      {"name": "DB_USER", "value": var.CONTAINER_DB_USER},
+      {"name": "DB_PASSWORD", "value": var.CONTAINER_DB_PASSWORD},
+      {"name": "DB_PORT", "value": var.CONTAINER_DB_PORT},
+      {"name": "DB_HOST", "value": var.CONTAINER_DB_HOST }
+    ]
+    }
+  ])
+}
