@@ -47,7 +47,9 @@ def retrieve_article_changes(conn: connection) -> pd.DataFrame:
 
         data = cur.fetchall()
 
-    return
+    return pd.DataFrame(data, columns=["article_id", "article_url", \
+            "change_type", "previous_version", "current_version", \
+            "last_scraped", "current_scraped", "similarity"])
 
 
 def retrieve_author(conn: connection, article_id: int) -> list:
