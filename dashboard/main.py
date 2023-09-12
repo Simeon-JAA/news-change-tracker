@@ -95,6 +95,11 @@ fruits
     annotated_text(string_builder)
 
 
+def dash_header():
+    """Create a dashboard header"""
+    st.title("T3 Truck Analytics")
+
+
 def display() -> None:
     """Displays the dashboard"""
 

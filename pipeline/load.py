@@ -172,12 +172,6 @@ def load_data():
     finally:
         db_conn.close()
 
-# hardcode
-
-def add_to_authors_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
-    """Converts df into tuples, then adds to authors table.
-    NB: needs article_id column converted into foreign key reference"""
-    pass
 
 if __name__ == "__main__":
     load_data()
