@@ -103,11 +103,9 @@ def display() -> None:
 
         article_changes = retrieve_article_changes(db_conn)
         articles = retrieve_article_info(db_conn)
-        articles.to_csv("testing.csv")
         articles["authors"] = articles["article_id"].apply(lambda x:\
                                 retrieve_author(db_conn, x))
-        print(articles)
-
+        return article_changes, articles
     except KeyboardInterrupt:
         print("User stopped the program.")
     finally:
