@@ -169,15 +169,10 @@ def load_data():
         add_to_article_version_table(db_conn, df_for_version)
     except KeyboardInterrupt:
         print("Keyboard interrupt")
+    except Exception as exc:
+        print(exc)
     finally:
         db_conn.close()
-
-# hardcode
-
-def add_to_authors_table_from_pandas(conn: connection, df: pd.DataFrame) -> None:
-    """Converts df into tuples, then adds to authors table.
-    NB: needs article_id column converted into foreign key reference"""
-    pass
 
 if __name__ == "__main__":
     load_data()
