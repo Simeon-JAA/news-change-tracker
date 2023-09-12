@@ -6,6 +6,7 @@ import re
 import pandas as pd
 from dotenv import load_dotenv
 from psycopg2 import connect
+from psycopg2 import connect
 from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 
@@ -168,9 +169,10 @@ def load_data():
         add_to_article_version_table(db_conn, df_for_version)
     except KeyboardInterrupt:
         print("Keyboard interrupt")
+    except Exception as exc:
+        print(exc)
     finally:
         db_conn.close()
-
 
 if __name__ == "__main__":
     load_data()

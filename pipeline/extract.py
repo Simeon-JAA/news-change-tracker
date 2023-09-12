@@ -81,7 +81,7 @@ def extract_data() -> None:
 
     articles.to_csv(SCRAPED_ARTICLES, index=False)
     rss_df.to_csv(RSS_FEED_CSV, index=False)
-    
+
 if __name__ == "__main__":
 
     rss_feed = read_feed(RSS_FEED)
