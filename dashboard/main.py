@@ -97,13 +97,14 @@ fruits
 
 def dash_header():
     """Creates a dashboard header"""
-    st.title("News Change Tracker")
+    st.markdown("## News Change Tracker")
 
 
 def total_articles_scraped(articles_df:pd.DataFrame):
     """Displays a metric of number of scraped articles"""
     total_articles_scraped = articles_df.shape[0]
     st.metric("Total articles scraped:", total_articles_scraped)
+
 
 def display() -> None:
     """Displays the dashboard"""
@@ -116,10 +117,11 @@ def display() -> None:
         articles["authors"] = articles["article_id"].apply(lambda x:\
                                 retrieve_author(db_conn, x))
 
-        articles_joined = pd.merge(articles, article_changes, on='article_id')
+        sources = articles["source"].unique()
+        print(sources)
 
-        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles_joined["article_id"]))
-        selected_sources = st.sidebar.multiselect("Source", options=sorted(articles_joined["source"]))
+        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles_joined["article_id"]).unique())
+        selected_sources = st.sidebar.multiselect("Source", options=sorted(articles_joined["source"].unique()))
         total_articles_scraped(articles_joined)
 
         if len(selected_articles) != 0:
