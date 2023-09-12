@@ -62,9 +62,12 @@ def load_data() -> None:
             article_change["article_id"] = article_change["article_id"].map(str)
             article_change["similarity"] = article_change["similarity"].map(str)
             add_to_article_change_table(db_conn, article_change)
-
     except KeyboardInterrupt:
-        raise KeyboardInterrupt("Stopped by user")
+        print("User stopped.")
+    except pd.errors.EmptyDataError:
+        print("No changes at this time")
+    except Exception as exc:
+        print(exc)
     finally:
         db_conn.close()
 

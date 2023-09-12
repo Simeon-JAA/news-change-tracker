@@ -35,13 +35,13 @@ def adjust_for_change(symbol: str, differences: list) -> str:
 def compare_data() -> None:
     """Implores fuzzy matching to compare the two changes side by side"""
 
-    article_changes = pd.read_csv(ARTICLES_FOR_COMPARISON)
+    try:
+        article_changes = pd.read_csv(ARTICLES_FOR_COMPARISON)
 
-    if not article_changes.empty:
         article_changes["similarity"] = article_changes.apply(lambda row:\
-                similarity(row["previous"], row["current"]), axis=1)
+                    similarity(row["previous"], row["current"]), axis=1)
 
-        # finds the differences between changed parts
+            # finds the differences between changed parts
         article_changes["differences"] = article_changes.apply(lambda row:\
     list(unified_diff(row["previous"].split(), row["current"].split()))[2:], axis=1)
         article_changes["current"] = article_changes["differences"].apply(\
@@ -51,7 +51,11 @@ def compare_data() -> None:
         # format the columns
         article_changes.drop(columns=["differences"], inplace=True)
         article_changes["similarity"] = article_changes["similarity"].round(2)
-    article_changes.to_csv(TRANSFORMED_ARTICLES_FOR_ARTICLE_CHANGE, index=False)
+        article_changes.to_csv(TRANSFORMED_ARTICLES_FOR_ARTICLE_CHANGE, index=False)
+    except KeyboardInterrupt:
+        print("User stopped.")
+    except pd.errors.EmptyDataError:
+        print("No changes at this time")
 
 
 if __name__ == "__main__":
