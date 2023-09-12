@@ -64,6 +64,17 @@ def retrieve_author(conn: connection, article_id: int) -> list:
         return [author[0] for author in authors]
 
 
+def format_article_change(block: str) -> list:
+    """Formats article_change entry block into a list"""
+
+    block = block.split("£$")
+    formatted_block = []
+
+    for word in block:
+        formatted_block.append(word.strip("§%"))
+    return formatted_block
+
+
 def highlighted_text() -> None:
     """Displays highlighted changes side by side"""
 
@@ -97,7 +108,7 @@ fruits
 
 def dash_header():
     """Creates a dashboard header"""
-    st.markdown("## News Change Tracker")
+    st.title("News Change Tracker")
 
 
 def total_articles_scraped(articles_df:pd.DataFrame):
@@ -112,13 +123,16 @@ def display() -> None:
     try:
         db_conn = get_db_connection()
 
+        # set-up the data
         article_changes = retrieve_article_changes(db_conn)
         articles = retrieve_article_info(db_conn)
         articles["authors"] = articles["article_id"].apply(lambda x:\
                                 retrieve_author(db_conn, x))
+        article_changes["previous_version"] = article_changes["previous_version"]\
+        .apply(format_article_change)
+        article_changes.to_csv("changes_column.csv")
 
         sources = articles["source"].unique()
-        print(sources)
 
         selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles_joined["article_id"]).unique())
         selected_sources = st.sidebar.multiselect("Source", options=sorted(articles_joined["source"].unique()))
