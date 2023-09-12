@@ -70,9 +70,10 @@ def format_article_change(block: str) -> list:
     block = block.split("£$")
     formatted_block = []
 
-    for word in block:
-        formatted_block.append(word.strip("§%"))
-    return formatted_block
+    for segment in block:
+        segment = segment.replace("§%", "")
+        formatted_block.append(segment)
+    return formatted_block[1:]
 
 
 def highlighted_text() -> None:
@@ -108,6 +109,7 @@ fruits
 
 def dash_header():
     """Creates a dashboard header"""
+    st.image("header_image.png")
     st.title("News Change Tracker")
 
 
@@ -115,6 +117,12 @@ def total_articles_scraped(articles_df:pd.DataFrame):
     """Displays a metric of number of scraped articles"""
     total_articles_scraped = articles_df.shape[0]
     st.metric("Total articles scraped:", total_articles_scraped)
+
+
+def mission_statement() -> None:
+    """Displays the mission statement"""
+    st.markdown("### Why is this project necessary?")
+    st.markdown("Your text here")
 
 
 def display() -> None:
@@ -130,17 +138,23 @@ def display() -> None:
                                 retrieve_author(db_conn, x))
         article_changes["previous_version"] = article_changes["previous_version"]\
         .apply(format_article_change)
+        article_changes["current_version"] = article_changes["current_version"]\
+        .apply(format_article_change)
         article_changes.to_csv("changes_column.csv")
 
+        # homepage
+        dash_header()
+        mission_statement()
+        total_articles_scraped(articles)
         sources = articles["source"].unique()
 
-        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles_joined["article_id"]).unique())
-        selected_sources = st.sidebar.multiselect("Source", options=sorted(articles_joined["source"].unique()))
-        total_articles_scraped(articles_joined)
+        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles["article_id"]))
+        selected_sources = st.sidebar.multiselect("Source", options=sorted(sources))
 
-        if len(selected_articles) != 0:
-            articles_joined = articles_joined[articles_joined["article_id"].isin(selected_articles)]
-            articles_joined = articles_joined[articles_joined["source"].isin(selected_sources)]
+
+        # if len(selected_articles) != 0:
+        #     articles_joined = articles_joined[articles_joined["article_id"].isin(selected_articles)]
+        #     articles_joined = articles_joined[articles_joined["source"].isin(selected_sources)]
 
 
 
