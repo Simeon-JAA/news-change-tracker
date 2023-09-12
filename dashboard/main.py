@@ -6,6 +6,7 @@ import pandas as pd
 from psycopg2 import connect
 from psycopg2.extensions import connection
 import streamlit as st
+import plotly.express as px
 from annotated_text import annotated_text
 
 
@@ -113,6 +114,22 @@ def dash_header():
     st.title("News Change Tracker")
 
 
+def changes_per_source_bar_chart(articles_joined_df):
+    """Displays a bar chart of number of changes per source"""
+    data = articles_joined_df.groupby("source").size().reset_index(name="count")
+    fig = px.bar(
+        data,
+        x="source",
+        y="count",
+        labels={"source": "News Source", "0": "Number of Changes"},
+        color = "source",
+        title = "Article Changes per Source",
+        
+    )
+    st.plotly_chart(fig, theme="streamlit", use_container_width=False)
+    
+
+
 def total_articles_scraped(articles_df:pd.DataFrame):
     """Displays a metric of number of scraped articles"""
     total_articles_scraped = articles_df.shape[0]
@@ -142,20 +159,22 @@ def display() -> None:
         .apply(format_article_change)
         article_changes.to_csv("changes_column.csv")
 
+        articles_joined = pd.merge(article_changes, articles, how="left", on="article_id")
         # homepage
         dash_header()
         mission_statement()
         total_articles_scraped(articles)
-        sources = articles["source"].unique()
-
-        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles["article_id"]))
+        sources = articles_joined["source"].unique()
+        
+        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles_joined["article_id"]))
         selected_sources = st.sidebar.multiselect("Source", options=sorted(sources))
 
 
-        # if len(selected_articles) != 0:
-        #     articles_joined = articles_joined[articles_joined["article_id"].isin(selected_articles)]
-        #     articles_joined = articles_joined[articles_joined["source"].isin(selected_sources)]
+        if len(selected_articles) != 0:
+            articles_joined = articles_joined[articles_joined["article_id"].isin(selected_articles)]
+            articles_joined = articles_joined[articles_joined["source"].isin(selected_sources)]
 
+        changes_per_source_bar_chart(articles_joined)
 
 
         # return article_changes, articles -
