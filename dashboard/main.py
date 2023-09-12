@@ -96,9 +96,14 @@ fruits
 
 
 def dash_header():
-    """Create a dashboard header"""
-    st.title("T3 Truck Analytics")
+    """Creates a dashboard header"""
+    st.title("News Change Tracker")
 
+
+def total_articles_scraped(articles_df:pd.DataFrame):
+    """Displays a metric of number of scraped articles"""
+    total_articles_scraped = articles_df.shape[0]
+    st.metric("Total articles scraped:", total_articles_scraped)
 
 def display() -> None:
     """Displays the dashboard"""
@@ -110,7 +115,20 @@ def display() -> None:
         articles = retrieve_article_info(db_conn)
         articles["authors"] = articles["article_id"].apply(lambda x:\
                                 retrieve_author(db_conn, x))
-        return article_changes, articles
+
+        articles_joined = pd.merge(articles, article_changes, on='article_id')
+
+        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles_joined["article_id"]))
+        selected_sources = st.sidebar.multiselect("Source", options=sorted(articles_joined["source"]))
+        total_articles_scraped(articles_joined)
+
+        if len(selected_articles) != 0:
+            articles_joined = articles_joined[articles_joined["article_id"].isin(selected_articles)]
+            articles_joined = articles_joined[articles_joined["source"].isin(selected_sources)]
+
+
+
+        # return article_changes, articles -
     except KeyboardInterrupt:
         print("User stopped the program.")
     finally:
