@@ -1,10 +1,11 @@
 """Main file for analysis on modified articles"""
 
+from difflib import unified_diff
 from rapidfuzz.fuzz import ratio
 import pandas as pd
-from difflib import unified_diff
 
 ARTICLES_FOR_COMPARISON = "articles_for_comparison.csv"
+TRANSFORMED_ARTICLES_FOR_ARTICLE_CHANGE = "transformed_data_for_a_c.csv"
 
 
 def similarity(previous_version: str, current_version: str) -> float:
@@ -15,26 +16,46 @@ def similarity(previous_version: str, current_version: str) -> float:
     return result
 
 
-def find_differences(df: pd.DataFrame) -> None:
-    """Splits the different versions by their similarities and differences"""
+def adjust_for_change(symbol: str, differences: list) -> str:
+    """Adjusts the entry to reflect either the original with details removed,
+    or the update with added details"""
 
-    txt = "I like tomatoes and fruits jcgjcgcjgjcg".split()
+    new_differences = []
 
-    txt2 = "I don't know if I like or not like tomatoes and fruits".split()
-
-    print('\n'.join(list(unified_diff(txt, txt2))))
-# highlight everything thats a plus in the new, highlight minus in the og
+    for word in differences:
+        # A symbol that wouldn't be used in traditional media
+        if '@@' in word:
+            new_differences.append("£$")
+        elif not word[0] == symbol:
+            new_differences.append(word)
+    # another symbol that wouldn't be used in traditional media
+    return "§%".join(new_differences)
 
 
 def compare_data() -> None:
     """Implores fuzzy matching to compare the two changes side by side"""
 
-    article_changes = pd.read_csv(ARTICLES_FOR_COMPARISON)
+    try:
+        article_changes = pd.read_csv(ARTICLES_FOR_COMPARISON)
 
-    if not article_changes.empty:
-        article_changes["proportion_changed"] = article_changes.apply(lambda row:\
-                similarity(row["previous"], row["current"]), axis=1)
-        find_differences(article_changes)
+        article_changes["similarity"] = article_changes.apply(lambda row:\
+                    similarity(row["previous"], row["current"]), axis=1)
+
+            # finds the differences between changed parts
+        article_changes["differences"] = article_changes.apply(lambda row:\
+    list(unified_diff(row["previous"].split(), row["current"].split()))[2:], axis=1)
+        article_changes["current"] = article_changes["differences"].apply(\
+            lambda x: adjust_for_change("-", x))
+        article_changes["previous"] = article_changes["differences"].apply(\
+            lambda x: adjust_for_change("+", x))
+        # format the columns
+        article_changes.drop(columns=["differences"], inplace=True)
+        article_changes["similarity"] = article_changes["similarity"].round(2)
+        article_changes.to_csv(TRANSFORMED_ARTICLES_FOR_ARTICLE_CHANGE, index=False)
+    except KeyboardInterrupt:
+        print("User stopped.")
+    except pd.errors.EmptyDataError:
+        print("No changes at this time")
 
 
 if __name__ == "__main__":

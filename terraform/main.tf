@@ -59,23 +59,123 @@ resource "aws_ecr_repository" "c8-news-change-tracker-etl-ecr" {
   }
 }
 
+resource "aws_iam_role_policy" "c8-news-tracker-authorization-token-policy" {
+  name        = "c8-news-tracker-authorization-token-policy"
+  role = aws_iam_role.c8-news-change-tracker-ecs-role.name
+
+  policy = jsonencode({
+  "Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "VisualEditor0",
+			"Effect": "Allow",
+			"Action": [
+				"ecr:DescribeImageScanFindings",
+				"ecr:GetLifecyclePolicyPreview",
+				"ecr:GetDownloadUrlForLayer",
+				"ecr:GetAuthorizationToken",
+				"ecr:ListTagsForResource",
+				"ecr:UploadLayerPart",
+				"ecr:ListImages",
+				"ecr:PutImage",
+				"logs:CreateLogDelivery",
+				"ecr:BatchGetImage",
+				"ecr:CompleteLayerUpload",
+				"ecr:DescribeImages",
+				"ecr:DescribeRepositories",
+				"ecr:InitiateLayerUpload",
+				"ecr:BatchCheckLayerAvailability",
+				"ecr:GetRepositoryPolicy",
+				"ecr:GetLifecyclePolicy"
+			],
+			"Resource": "*"
+		}]    
+  })
+}
+
+resource "aws_iam_role_policy" "c8-news-tracker-cloud-log-policy" {
+  name        = "c8-news-tracker-cloud-log-policy"
+  role = aws_iam_role.c8-news-change-tracker-ecs-role.name
+  policy = jsonencode({
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "VisualEditor0",
+			"Effect": "Allow",
+			"Action": [
+				"logs:DescribeQueries",
+				"logs:DescribeLogGroups",
+				"logs:DescribeAccountPolicies",
+				"logs:StopQuery",
+				"logs:TestMetricFilter",
+				"logs:DeleteQueryDefinition",
+				"logs:PutQueryDefinition",
+				"logs:PutAccountPolicy",
+				"logs:GetLogDelivery",
+				"logs:ListLogDeliveries",
+				"logs:DeleteAccountPolicy",
+				"logs:Link",
+				"logs:CreateLogDelivery",
+				"logs:DeleteResourcePolicy",
+				"logs:PutResourcePolicy",
+				"logs:DescribeExportTasks",
+				"logs:StartLiveTail",
+				"logs:UpdateLogDelivery",
+				"logs:StopLiveTail",
+				"logs:CancelExportTask",
+				"logs:DeleteLogDelivery",
+				"logs:DescribeQueryDefinitions",
+				"logs:DescribeResourcePolicies",
+				"logs:DescribeDestinations"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "VisualEditor1",
+			"Effect": "Allow",
+			"Action": [
+				"logs:*",
+				"logs:DeleteLogStream"
+			],
+			"Resource": [
+				"arn:aws:logs:*:129033205317:destination:*",
+				"arn:aws:logs:*:129033205317:log-group:*:log-stream:*"
+			]
+		},
+		{
+			"Sid": "VisualEditor2",
+			"Effect": "Allow",
+			"Action": "logs:*",
+			"Resource": "arn:aws:logs:*:129033205317:log-group:*"
+		},
+		{
+			"Sid": "VisualEditor3",
+			"Effect": "Allow",
+			"Action": [
+				"logs:CreateLogStream",
+				"logs:DescribeLogStreams"
+			],
+			"Resource": "arn:aws:logs:*:129033205317:log-group:*"
+		}
+	]
+})
+}
+
 resource "aws_iam_role" "c8-news-change-tracker-ecs-role" {
   name = "c8-news-change-tracker-ecs-role"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ecs-tasks.amazonaws.com"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
       },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
+    ]
+  })
 }
 
 resource "aws_ecs_task_definition" "c8-news-change-tracker-etl-task-definition" {
@@ -154,7 +254,7 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-etl-pipeline-schedule"
     role_arn = "arn:aws:iam::129033205317:role/service-role/Amazon_EventBridge_Scheduler_ECS_8655dce22e"
 
     ecs_parameters {
-      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn + ""
+      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-etl-task-definition.arn_without_revision
       launch_type = "FARGATE"
       task_count = 1
 
@@ -234,7 +334,7 @@ resource "aws_scheduler_schedule" "c8-news-change-tracker-comparison-pipeline-sc
     role_arn = "arn:aws:iam::129033205317:role/service-role/Amazon_EventBridge_Scheduler_ECS_8655dce22e"
 
     ecs_parameters {
-      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-comparison-pipeline-task-definition.arn
+      task_definition_arn = aws_ecs_task_definition.c8-news-change-tracker-comparison-pipeline-task-definition.arn_without_revision
       launch_type = "FARGATE"
       task_count = 1
 
