@@ -27,7 +27,7 @@ def get_db_connection() -> connection:
                        dbname=environ["DB_NAME"])
     except Exception as exc:
         print(f"get_db_connection Error: {exc}")
-        raise Exception()
+        
 
 
 def get_urls_from_article_table(conn: connection) -> list:
@@ -76,9 +76,16 @@ def scrape_all_articles(urls: list) -> pd.DataFrame:
     article_list = []
 
     for url in urls:
-        article = scrape_article(url)
-        if article["heading"] and article["body"]:
-            article_list.append(article)
+        try:
+            article = scrape_article(url)
+            if article["headline"] and article["body"]:
+                article_list.append(article)
+            else:
+                continue
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt("Stopped by user")
+        except Exception as exc:
+            print(exc)
 
     return pd.DataFrame(article_list)
 
