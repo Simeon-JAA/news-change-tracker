@@ -102,44 +102,18 @@ def mock_compared_df():
     ])
 
     return pd.DataFrame(
-    [
-        {"heading" : {
-            "previous" : "headline",
-            "updated" : "new headline",
-        },
-        "body" : {
-            "previous" : "body",
-            "updated" : "new body",
-        },
-        "article_url" : {
-            "previous" : "www.test.com",
-            "updated": "www.test.com"
-        },
-        "scraped_at" : {
-            "previous" : "time",
-            "updated" : "time"
-        }
-    }
+    [("headline", "headline", "body", "new body", "url", "new url", "time", "new time")
     ], columns= cols).drop(columns=[("article_url", "previous")])
 
 
-# @pytest.fixture
-# def mock_compared_df():
-#     """Fixture for mock compared df"""
-#     cols = pd.MultiIndex.from_product([
-#         ["heading", "body", "scraped_at"],
-#         ["previous", "updated"]
-#     ])
+@pytest.fixture
+def mock_compared_double_diff_df():
+    """Fixture for mock compared df"""
+    cols = pd.MultiIndex.from_product([
+        ["heading", "body", "article_url", "scraped_at"],
+        ["previous", "updated"]
+    ])
 
-#     return pd.DataFrame(
-#     [
-#         {"heading" : {
-#             "previous" : "headline",
-#             "updated" : "new headline",
-#         },
-#         "body" : {
-#             "previous" : "body",
-#             "updated" : "body",
-#         }
-#     }
-#     ], columns= cols)
+    return pd.DataFrame(
+    [("headline", "new headline", "body", "new body", "url", "new url", "time", "new time")
+    ], columns= cols).drop(columns=[("article_url", "previous")])
