@@ -22,9 +22,19 @@ class TestIdentifyChanges:
         assert all([col in result.columns for col in ["body", "heading"]])
 
 
-# class TestFormatComparison:
-#     """Tests for the format_comparison function"""
-#     pass 
+class TestFormatComparison:
+    """Tests for the format_comparison function"""
+
+    @patch("transform.retrieve_article_id")
+    def test_format_comparison_return_df(self, mock_retrieve, mock_compared_df):
+        """Tests the format_comparison function returns a df"""
+        conn = MagicMock()
+    
+        result = format_comparison(mock_compared_df, conn)
+        assert mock_retrieve.call_count == 1
+        assert isinstance(result, pd.DataFrame)
+        assert all(col in result.columns for col in ["article_url", "article_id", \
+        "type_of_change", "previous", "current", "previous_scraped_at", "current_scraped_at"])
 
 class TestFormatArticleVersionUpdate():
     """Tests for the format_article_version_update function"""
@@ -74,3 +84,19 @@ class TestDoubleChanges:
         assert "heading" not in result.columns
         assert all(col in result.columns for col in ["current", "previous", "article_url", \
                     "current_scraped_at", "previous_scraped_at", "type_of_change"])
+        
+
+@patch("transform.identify_changes")
+@patch("transform.get_db_connection")
+class TestTransformData:
+    """Tests for the transform_data function"""
+
+    def test_transform_data_closes_conn(self, mock_conn, mock_identify):
+        """Tests that connection is closed during function"""
+        conn = MagicMock()
+        mock_conn.return_value = conn
+        mock_close = conn.close
+        result = transform_data()
+        assert mock_conn.call_count == 1
+        assert mock_close.call_count == 1
+
