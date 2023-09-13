@@ -3,3 +3,6 @@ psycopg2
 streamlit
 st-annotated-text
 plotly
+beautifulsoup4
+lxml
+requests

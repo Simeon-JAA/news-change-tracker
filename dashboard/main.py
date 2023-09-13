@@ -8,6 +8,17 @@ from psycopg2.extensions import connection
 import streamlit as st
 import plotly.express as px
 from annotated_text import annotated_text
+import requests
+from bs4 import BeautifulSoup as bs
+import re
+
+
+def get_image(url: str) -> None:
+    article = requests.get(url, timeout=10)
+    soup = bs(article.content, 'lxml')
+    picture = soup.find('img', {"srcset":re.compile(".*")})["src"]
+    return picture
+
 
 
 def get_db_connection() -> connection:
@@ -74,50 +85,31 @@ def retrieve_author(article_id: int) -> list:
 def format_article_change(block: str) -> list:
     """Formats article_change entry block into a list"""
 
-    block = block.split("£$")
-    formatted_block = []
-
-    for segment in block:
-        segment = segment.replace("§%", "")
-        formatted_block.append(segment)
-    return formatted_block[1:]
+    return block.split("£$")[1:]
 
 
-def highlighted_text() -> None:
+def format_change_column(change: str) -> str:
+    """Formats change column to title"""
+    return change.title()
+
+
+def highlighted_text(changes: list, symbol: str, colour: str) -> None:
     """Displays highlighted changes side by side"""
 
-    changes = """ I
-+don't
-+know
-+if
-+I
-+like
-+or
-+not
-like
-tomatoes
-and
-fruits
--jcgjcgcjgjcg"""
     string_builder = []
-    changes = changes.split('\n')
-    print(changes)
-    for word in changes:
-        if word[0] == '+':
-            word = word.replace("+", " ")
-            string_builder.append((word, "", "#81d654"))
-        elif word[0] == '-':
-            word = word.replace("-", " ")
-            string_builder.append((word, "", "#f07ff0"))
-        else:
-            string_builder.append((" " + word))
+    for word in changes.split("§%")[1:]:
+        if len(word) > 0:
+            if word[0] == symbol:
+                word = word.replace(symbol, " ")
+                string_builder.append((word, "", colour))
+            else:
+                string_builder.append((" " + word))
     annotated_text(string_builder)
 
 
 def dash_header():
     """Creates a dashboard header"""
     st.image("header_image.png")
-    st.title("News Change Tracker")
 
 
 def changes_per_source_bar_chart(articles_joined_df: pd.DataFrame) -> None:
@@ -144,16 +136,33 @@ def total_articles_scraped(articles_df: pd.DataFrame):
 
 def display_one_article(article_changes: pd.DataFrame) -> None:
     """Displays a page for a selected article"""
-    print(article_changes)
-    # st.title(article_changes["article_url"].iloc[0])
-    st.markdown(f"### Total changes: {article_changes.shape[0]}")
+
+    article_url = article_changes["article_url"].iloc[0]
+    st.title(article_url)
+    image = get_image(article_url)
+    if image:
+        st.image(image)
+    st.markdown(f"## Total changes: {article_changes.shape[0]}")
+
     tuples = article_changes.to_records(index=False)
+    for one_tuple in tuples:
+        display_article_change(one_tuple)
 
 
 def display_article_change(article_change: tuple) -> None:
     """An add-on that displays a single change"""
 
-    st.write(f"## {article_change['article_url']}")
+    col1, col2 = st.columns(2, gap = "medium")
+    with col1:
+        st.write(f"### Type of change: {article_change[2]}")
+        st.write("**Previous version:**")
+        for change in article_change[3]:
+            highlighted_text(change, "-", "#AED6F1")
+    with col2:
+        st.markdown(f"### Similarity: {article_change[7]}%")
+        st.write("**Current version:**")
+        for change in article_change[4]:
+            highlighted_text(change, "+", "#ff935c")
 
 
 def mission_statement() -> None:
@@ -189,13 +198,12 @@ def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None
     most_changed_article = articles_changes_df[articles_changes_df["article_id"]
                                                == most_changes_id]
 
-    data = most_changed_article.iloc[-1]
-
-    url = data["article_url"]
-    change_type = data["change_type"]
-
     st.markdown("### Article with most changes:")
-    st.markdown(f"Article Url = {url}")
+    st.markdown(f"**Article ID = {most_changed_article['article_id'].iloc[0]}, \
+                {most_changed_article.count().iloc[0]} changes.**")
+    st.write("### Example change:")
+    data = most_changed_article.to_records(index=False)[0]
+    display_article_change(data)
 
 
 def display() -> None:
@@ -207,18 +215,20 @@ def display() -> None:
         article_changes = retrieve_article_changes()
         articles = retrieve_article_info()
         articles["authors"] = articles["article_id"].apply(retrieve_author)
+        article_changes.to_csv("changes_column.csv")
         article_changes["previous_version"] = article_changes["previous_version"]\
             .apply(format_article_change)
         article_changes["current_version"] = article_changes["current_version"]\
             .apply(format_article_change)
-        article_changes.to_csv("changes_column.csv")
+        article_changes["change_type"] = article_changes["change_type"].\
+            apply(format_change_column)
 
         articles_joined = pd.merge(
             article_changes, articles, how="left", on="article_id")
         sources = articles_joined["source"].unique()
 
         # multiselect
-        options = sorted(articles["article_id"])
+        options = sorted(article_changes["article_id"].drop_duplicates())
         options.insert(0, "Homepage")
         selected_articles = st.sidebar.selectbox("Article ID", options=options,
                                                  placeholder="Select an article", index=0)
@@ -237,8 +247,9 @@ def display() -> None:
         # one selection
         if isinstance(selected_articles, int):
             working_article = article_changes[article_changes["article_id"]
-                                              == 1]
+                                              == selected_articles]
             display_one_article(working_article)
+            working_article["image"] = working_article["article_url"].apply(lambda x: get_image(x))
 
         # return article_changes, articles -
     except KeyboardInterrupt:
