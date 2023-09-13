@@ -64,6 +64,18 @@ def retrieve_author(conn: connection, article_id: int) -> list:
         return [author[0] for author in authors]
 
 
+def format_article_change(block: str) -> list:
+    """Formats article_change entry block into a list"""
+
+    block = block.split("£$")
+    formatted_block = []
+
+    for segment in block:
+        segment = segment.replace("§%", "")
+        formatted_block.append(segment)
+    return formatted_block[1:]
+
+
 def highlighted_text() -> None:
     """Displays highlighted changes side by side"""
 
@@ -97,6 +109,7 @@ fruits
 
 def dash_header():
     """Creates a dashboard header"""
+    st.image("header_image.png")
     st.title("News Change Tracker")
 
 
@@ -105,21 +118,60 @@ def total_articles_scraped(articles_df:pd.DataFrame):
     total_articles_scraped = articles_df.shape[0]
     st.metric("Total articles scraped:", total_articles_scraped)
 
+
+def mission_statement() -> None:
+    """Displays the mission statement"""
+    st.markdown("### Why is this project necessary?")
+    st.markdown("Your text here")
+
+
+def display_one_article(article_id: str, article_changes: pd.DataFrame) -> None:
+    """Displays a page for a selected article"""
+
+    article_changes = article_changes[article_changes["article_id"] == article_id].copy()
+    st.title(article_changes["article_url"].unique())
+    st.markdown(f"### Total changes: {article_changes.shape[0]}")
+    tuples = article_changes.to_records(index=False)
+
+
+def display_article_change(article_change: tuple) -> None:
+    """An add-on that displays a single change"""
+
+    st.write(f"## {}")
+
+
 def display() -> None:
     """Displays the dashboard"""
 
     try:
         db_conn = get_db_connection()
 
+        # set-up the data
         article_changes = retrieve_article_changes(db_conn)
         articles = retrieve_article_info(db_conn)
         articles["authors"] = articles["article_id"].apply(lambda x:\
                                 retrieve_author(db_conn, x))
-        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles["article_id"]))
-        total_articles_scraped(articles)
+        article_changes["previous_version"] = article_changes["previous_version"]\
+        .apply(format_article_change)
+        article_changes["current_version"] = article_changes["current_version"]\
+        .apply(format_article_change)
+        article_changes.to_csv("changes_column.csv")
 
-        if len(selected_articles) != 0:
-            article_changes = article_changes[article_changes["article_id"].isin(selected_articles)]
+        # homepage
+        dash_header()
+        mission_statement()
+        total_articles_scraped(articles)
+        sources = articles["source"].unique()
+
+        selected_articles = st.sidebar.multiselect("Article ID", options=sorted(articles["article_id"]))
+        selected_sources = st.sidebar.multiselect("Source", options=sorted(sources))
+
+
+        # if len(selected_articles) != 0:
+        #     articles_joined = articles_joined[articles_joined["article_id"].isin(selected_articles)]
+        #     articles_joined = articles_joined[articles_joined["source"].isin(selected_sources)]
+
+
 
         # return article_changes, articles -
     except KeyboardInterrupt:
