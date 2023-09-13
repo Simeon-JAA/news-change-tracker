@@ -16,12 +16,14 @@ def get_db_connection() -> connection:
     load_dotenv()
 
     return connect(host=environ["DB_HOST"],
-                       user=environ["DB_USER"],
-                       password=environ["DB_PASSWORD"],
-                       port=environ["DB_PORT"],
-                       dbname=environ["DB_NAME"])
+                   user=environ["DB_USER"],
+                   password=environ["DB_PASSWORD"],
+                   port=environ["DB_PORT"],
+                   dbname=environ["DB_NAME"])
+
 
 conn = get_db_connection()
+
 
 @st.cache_data
 def retrieve_article_info() -> pd.DataFrame:
@@ -35,8 +37,9 @@ def retrieve_article_info() -> pd.DataFrame:
 
         data = cur.fetchall()
 
-    return pd.DataFrame(data, columns=["article_id", "article_url",\
-                                "source", "created_at"])
+    return pd.DataFrame(data, columns=["article_id", "article_url",
+                                       "source", "created_at"])
+
 
 @st.cache_data
 def retrieve_article_changes() -> pd.DataFrame:
@@ -50,9 +53,10 @@ def retrieve_article_changes() -> pd.DataFrame:
 
         data = cur.fetchall()
 
-    return pd.DataFrame(data, columns=["article_id", "article_url", \
-            "change_type", "previous_version", "current_version", \
-            "last_scraped", "current_scraped", "similarity"])
+    return pd.DataFrame(data, columns=["article_id", "article_url",
+                                       "change_type", "previous_version", "current_version",
+                                       "last_scraped", "current_scraped", "similarity"])
+
 
 @st.cache_data
 def retrieve_author(article_id: int) -> list:
@@ -118,20 +122,21 @@ def dash_header():
 
 def changes_per_source_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     """Displays a bar chart of number of changes per source"""
-    data = articles_joined_df.groupby("source").size().reset_index(name="count")
+    data = articles_joined_df.groupby(
+        "source").size().reset_index(name="count")
     fig = px.bar(
         data,
         x="source",
         y="count",
         labels={"source": "News Source", "0": "Number of Changes"},
-        color = "source",
-        title = "Article Changes per Source",
+        color="source",
+        title="Article Changes per Source",
 
     )
     st.plotly_chart(fig, theme="streamlit", use_container_width=False)
 
 
-def total_articles_scraped(articles_df:pd.DataFrame):
+def total_articles_scraped(articles_df: pd.DataFrame):
     """Displays a metric of number of scraped articles"""
     total_articles_scraped = articles_df.shape[0]
     st.metric("Total articles scraped:", total_articles_scraped)
@@ -160,27 +165,29 @@ def mission_statement() -> None:
 
 def heading_vs_body_changes_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     """Displays the number of heading changes and number """
-    data = articles_joined_df.groupby("change_type").size().reset_index(name="count")
+    data = articles_joined_df.groupby(
+        "change_type").size().reset_index(name="count")
     fig = px.bar(
         data,
         x="change_type",
         y="count",
         labels={"source": "News Source", "0": "Number of Changes"},
-        color = "change_type",
-        title = "Total Types of Article Changes",
+        color="change_type",
+        title="Total Types of Article Changes",
 
     )
     st.plotly_chart(fig, theme="streamlit", use_container_width=False)
 
 
-#TODO article with most changes just as text
+# TODO article with most changes just as text
 def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None:
     """Displays the article information with the most changes"""
 
-    most_changes_id = int(articles_changes_df["article_id"].value_counts().reset_index().iloc[0]["article_id"])
+    most_changes_id = int(articles_changes_df["article_id"].value_counts(
+    ).reset_index().iloc[0]["article_id"])
 
-    print(articles_changes_df[articles_changes_df["article_id"] == most_changes_id])
-
+    print(
+        articles_changes_df[articles_changes_df["article_id"] == most_changes_id])
 
 
 def display() -> None:
@@ -193,21 +200,22 @@ def display() -> None:
         articles = retrieve_article_info()
         articles["authors"] = articles["article_id"].apply(retrieve_author)
         article_changes["previous_version"] = article_changes["previous_version"]\
-        .apply(format_article_change)
+            .apply(format_article_change)
         article_changes["current_version"] = article_changes["current_version"]\
-        .apply(format_article_change)
+            .apply(format_article_change)
         article_changes.to_csv("changes_column.csv")
 
-        articles_joined = pd.merge(article_changes, articles, how="left", on="article_id")
+        articles_joined = pd.merge(
+            article_changes, articles, how="left", on="article_id")
         sources = articles_joined["source"].unique()
 
         # multiselect
         options = sorted(articles["article_id"])
         options.insert(0, "Homepage")
-        selected_articles = st.sidebar.selectbox("Article ID", options=options,\
-            placeholder="Select an article", index=0)
-        selected_sources = st.sidebar.selectbox("Source", options=sorted(sources))
-
+        selected_articles = st.sidebar.selectbox("Article ID", options=options,
+                                                 placeholder="Select an article", index=0)
+        selected_sources = st.sidebar.selectbox(
+            "Source", options=sorted(sources))
 
         # homepage
         if isinstance(selected_articles, str):
@@ -218,11 +226,10 @@ def display() -> None:
             heading_vs_body_changes_bar_chart(articles_joined)
             display_article_with_most_changes(article_changes)
 
-
         # one selection
         if isinstance(selected_articles, int):
-            working_article = article_changes[article_changes["article_id"] \
-                                    == 1]
+            working_article = article_changes[article_changes["article_id"]
+                                              == 1]
             display_one_article(working_article)
 
         # return article_changes, articles -
@@ -230,7 +237,6 @@ def display() -> None:
         print("User stopped the program.")
     finally:
         conn.close()
-
 
 
 if __name__ == "__main__":
