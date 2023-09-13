@@ -117,3 +117,20 @@ def mock_compared_double_diff_df():
     return pd.DataFrame(
     [("headline", "new headline", "body", "new body", "url", "new url", "time", "new time")
     ], columns= cols).drop(columns=[("article_url", "previous")])
+
+
+
+@pytest.fixture
+def mock_article_version():
+    """Fixture for mocked article versions dataframe"""
+    return pd.DataFrame(data=[("2023-09-11 12:44:33", "heading", "body", "1")],
+                        columns=["scraped_at", "heading", "body", "article_id"])
+
+
+@pytest.fixture
+def mock_article_changes():
+    """Fixture for mocked article versions dataframe"""
+    return pd.DataFrame(data=[("1", "www.url.com", "body", "old body", "new body", "2023-09-11 12:14:33", "2023-09-11 12:44:33", "0.99")],
+                        columns=["article_id", "article_url", \
+                            "type_of_change", "previous", "current", "previous_scraped_at", "current_scraped_at", "similarity"])
+
