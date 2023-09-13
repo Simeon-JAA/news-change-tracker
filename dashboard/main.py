@@ -179,15 +179,23 @@ def heading_vs_body_changes_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     st.plotly_chart(fig, theme="streamlit", use_container_width=False)
 
 
-# TODO article with most changes just as text
+# TODO article with most changes just as textjiwaufnjo
 def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None:
     """Displays the article information with the most changes"""
 
     most_changes_id = int(articles_changes_df["article_id"].value_counts(
     ).reset_index().iloc[0]["article_id"])
 
-    print(
-        articles_changes_df[articles_changes_df["article_id"] == most_changes_id])
+    most_changed_article = articles_changes_df[articles_changes_df["article_id"]
+                                               == most_changes_id]
+
+    data = most_changed_article.iloc[-1]
+
+    url = data["article_url"]
+    change_type = data["change_type"]
+
+    st.markdown("### Article with most changes:")
+    st.markdown(f"Article Url = {url}")
 
 
 def display() -> None:
