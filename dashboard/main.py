@@ -16,9 +16,8 @@ import re
 def get_image(url: str) -> None:
     article = requests.get(url, timeout=10)
     soup = bs(article.content, 'lxml')
-    picture = soup.find('img', {"srcset":re.compile(".*")})["src"]
+    picture = soup.find('img', {"srcset": re.compile(".*")})["src"]
     return picture
-
 
 
 def get_db_connection() -> connection:
@@ -152,7 +151,7 @@ def display_one_article(article_changes: pd.DataFrame) -> None:
 def display_article_change(article_change: tuple) -> None:
     """An add-on that displays a single change"""
 
-    col1, col2 = st.columns(2, gap = "medium")
+    col1, col2 = st.columns(2, gap="medium")
     with col1:
         st.write(f"### Type of change: {article_change[2]}")
         st.write("**Previous version:**")
@@ -249,7 +248,8 @@ def display() -> None:
             working_article = article_changes[article_changes["article_id"]
                                               == selected_articles]
             display_one_article(working_article)
-            working_article["image"] = working_article["article_url"].apply(lambda x: get_image(x))
+            working_article["image"] = working_article["article_url"].apply(
+                lambda x: get_image(x))
 
         # return article_changes, articles -
     except KeyboardInterrupt:
