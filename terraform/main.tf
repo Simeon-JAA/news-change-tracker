@@ -361,8 +361,38 @@ resource "aws_ecr_repository" "c8-news-change-tracker-dashboard-ecr" {
   }
 }
 
-resource "aws_ecs_task_definition" "c8-news-change-tracker-dashboard-task-definition" {
-  family                   = "c8-news-change-tracker-dashboard-task-definition"
+resource "aws_security_group" "c8-news-tracker-dashboard-sg" {
+  name = "c8-news-tracker-dashboard-sg"
+  description = "Allows connection to dashboard service"
+  vpc_id = "vpc-0e0f897ec7ddc230d"
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "http"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port       = 8501
+    to_port         = 8501
+    protocol        = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_ecs_task_definition" "c8-news-change-tracker-dashboard" {
+  family                   = "c8-news-change-tracker-dashboard"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 1024
@@ -385,6 +415,9 @@ resource "aws_ecs_task_definition" "c8-news-change-tracker-dashboard-task-defini
       }, {
         "containerPort": 5432,
         "hostPort": 5432,
+      }, {
+        "containerPort": 8501,
+        "hostPort": 8501,
       }
     ]
     "environment": [
@@ -401,24 +434,16 @@ resource "aws_ecs_task_definition" "c8-news-change-tracker-dashboard-task-defini
 resource "aws_ecs_service" "c8-news-change-tracker-dashboard-service" {
   name            = "c8-news-change-tracker-dashboard-service"
   cluster         = aws_ecs_cluster.c8-news-change-tracker-cluster.id
-  task_definition = aws_ecs_task_definition.c8-news-change-tracker-dashboard-task-definition.arn
-  desired_count   = 3
+  task_definition = aws_ecs_task_definition.c8-news-change-tracker-dashboard.arn_without_revision
+  desired_count   = 1
   iam_role        = aws_iam_role.c8-news-change-tracker-ecs-role.arn
   depends_on = [ aws_iam_role_policy.c8-news-tracker-authorization-token-policy.arn ]
+  launch_type = "FARGATE"
+  platform_version = "LATEST"
 
   network_configuration {
     subnets = ["subnet-0667517a2a13e2a6b", "subnet-0cec5bdb9586ed3c4", "subnet-03b1a3e1075174995"]
     assign_public_ip = true
-    security_groups = [ aws_security_group.c8-news-change-tracker-scheduler-sg.id ]
-  }
-
-  ordered_placement_strategy {
-    type  = "binpack"
-    field = "cpu"
-  }
-
-  placement_constraints {
-    type       = "memberOf"
-    expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
+    security_groups = [ aws_security_group.c8-news-tracker-dashboard-sg.id]
   }
 }
