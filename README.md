@@ -1,3 +1,5 @@
+![alt text](news-change-tracker_dashboard.png)
+
 # news-change-tracker
 
 ## Intro
@@ -80,6 +82,27 @@ These values will depend on your database set up.
 
 4. Locally, these images can be run on a schedule using cron jobs to automatically extract and compare data.
 
-   Alternatively if running on AWS, the docker images can be uploaded to the ECR created by Terraform, and EventBridge schedules can be set up to run the ECS task definitions, using cron in AWS.
+   Alternatively if running on AWS, the docker images can be uploaded to the ECR created by Terraform, and EventBridge schedules can be set up to run ECS containers.
 
 ## Viewing the dashboard
+
+1. Create the docker image for the dashboard.
+   Navigate to the dashboard subfolder and run the following command:
+
+   ```
+   docker build -t [IMAGE_NAME] .
+   ```
+
+   If running on AWS cloud resources (ECS), add `--platform linux/amd64` to the end of the command.
+
+2. The image can be run locally with the following command:
+
+   ```
+   docker run -it --env-file ../.env -p 8501:8501  [IMAGE_NAME]
+
+   ```
+
+3. Dashboard can be viewed running locally by navigating to `http://localhost:8501` in your browser.
+
+4. The dashboard can also be run as an ECS service by uploading the docker image to a dashboard ECR repository, and creating a service task definition.
+5. This can then be viewed by navigating to the ECS container's url or IP address, with `:8501` appended e.g. `http://18.133.64.123:8501/`.
