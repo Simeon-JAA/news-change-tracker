@@ -164,6 +164,7 @@ def display_article_changes_above_number(article_changes: pd.DataFrame, threshol
 
 def display_one_article(article_changes: pd.DataFrame) -> None:
     """Displays a page for a selected article"""
+    article_changes = article_changes.copy()
     st.write("Original headline:")
     article_url = article_changes["article_url"].iloc[0]
     heading = article_changes["heading"].iloc[0]
@@ -198,9 +199,10 @@ def display_article_change(article_change: tuple) -> None:
 
 def mission_statement() -> None:
     """Displays the mission statement"""
-    st.markdown("### Why is this project necessary?")
-    st.markdown("""We pride ourselves on _full transparency_ and aim to keep records of all changes made to news articles.
-                If they won't hold themselves accountable ... **WE WILL!**""")
+    st.markdown("### Who are we?")
+    st.markdown("""**News sources often change their articles without public disclosure.
+                In the spirit of transparency and accountability, we want to change this.**""")
+    st.markdown("""**The News Change Tracker allows you to track changes from publications, in real time.**""")
 
 
 def heading_vs_body_changes_pie_chart(articles_joined_df: pd.DataFrame) -> None:
@@ -314,10 +316,10 @@ def display() -> None:
         # multiselect
         options = sorted(article_changes["article_id"].drop_duplicates())
         options.insert(0, "Homepage")
-        selected_articles = st.sidebar.selectbox("Article ID", options=options,
-                                                 placeholder="Select an article", index=0)
+        selected_articles = st.sidebar.selectbox("Article ID", options=options, index=0)
         selected_sources = st.sidebar.selectbox(
             "Source", options=sorted(sources))
+
 
         # homepage
         if isinstance(selected_articles, str):
