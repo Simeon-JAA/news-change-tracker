@@ -11,7 +11,7 @@ from annotated_text import annotated_text
 import requests
 from bs4 import BeautifulSoup as bs
 import re
-import altair
+import altair as alt
 
 
 def get_image(url: str) -> None:
@@ -107,6 +107,10 @@ def format_change_column(change: str) -> str:
     return change.title()
 
 
+def display_changes_piechart(df: pd.DataFrame) -> None:
+    """Displays a pie chart"""
+
+
 def highlighted_text(changes: list, symbol: str, colour: str) -> None:
     """Displays highlighted changes side by side"""
 
@@ -160,13 +164,15 @@ def display_article_changes_above_number(article_changes: pd.DataFrame, threshol
 
 def display_one_article(article_changes: pd.DataFrame) -> None:
     """Displays a page for a selected article"""
-
+    st.write("Original headline:")
     article_url = article_changes["article_url"].iloc[0]
     heading = article_changes["heading"].iloc[0]
-    st.title(heading)
+    st.markdown(f"# {heading}")
     image = get_image(article_url)
     if image:
         st.image(image)
+
+    st.write(f"URL: {article_url}")
     st.markdown(f"## Total changes: {article_changes.shape[0]}")
 
     tuples = article_changes.to_records(index=False)
@@ -199,20 +205,15 @@ def mission_statement() -> None:
 
 def heading_vs_body_changes_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     """Displays the number of heading changes and number """
+    articles_joined_df = articles_joined_df.copy()
     data = articles_joined_df.groupby(
         "change_type").size().reset_index(name="count")
-    fig = px.bar(
-        data,
-        x="change_type",
-        y="count",
-        labels={"source": "News Source", "0": "Number of Changes"},
-        color="change_type",
-        # make piechart
-        title="Total Types of Article Changes",
-
-    )
-    st.plotly_chart(fig, theme="streamlit", use_container_width=False)
-
+    data.columns = ["Change Type", "count"]
+    plot = alt.Chart(data, title="Article Change Types").mark_arc().encode(
+    theta="count",
+    color="Change Type"
+)
+    st.altair_chart(plot, use_container_width=True)
 
 def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None:
     """Displays the article information with the most changes"""
