@@ -6,20 +6,11 @@ import pandas as pd
 from psycopg2 import connect
 from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
+from extract import get_db_connection
 
 
 TRANSFORMED_ARTICLES_FOR_ARTICLE_VERSION = "transformed_data_for_a_v.csv"
 TRANSFORMED_ARTICLES_FOR_ARTICLE_CHANGE = "transformed_data_for_a_c.csv"
-
-
-def get_db_connection() -> connection:
-    """Returns connection to the rds database"""
-
-    return connect(host=environ["DB_HOST"],
-                       user=environ["DB_USER"],
-                       password=environ["DB_PASSWORD"],
-                       port=environ["DB_PORT"],
-                       dbname=environ["DB_NAME"])
 
 
 def add_to_article_version_table(conn: connection, df: pd.DataFrame) -> None:
