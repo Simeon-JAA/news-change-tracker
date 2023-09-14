@@ -44,7 +44,7 @@ def retrieve_article_info() -> pd.DataFrame:
 
         cur.execute("""SELECT ar.article_id, ar.article_url,
                     ar.source, ar.created_at
-                FROM article ar JOIN article_version av ON ar.article_id = av.article_id;""")
+                FROM article ar;""")
 
         data = cur.fetchall()
 
@@ -138,9 +138,9 @@ def changes_per_source_bar_chart(articles_joined_df: pd.DataFrame) -> None:
         data,
         x="source",
         y="count",
-        labels={"source": "News Source", "0": "Number of Changes"},
+        labels={"source": "News Source", "count": "Count"},
         color="source",
-        title="Article Changes per Source",
+        title="Number of Article Changes per Source",
 
     )
     st.plotly_chart(fig, theme="streamlit", use_container_width=False)
@@ -188,12 +188,12 @@ def display_article_change(article_change: tuple) -> None:
         st.write(f"### Type of change: {article_change[2]}")
         st.write("**Previous version:**")
         for change in article_change[3]:
-            highlighted_text(change, "-", "#AED6F1")
+            highlighted_text(change, "-", "#84c9ff")
     with col2:
         st.markdown(f"### Similarity: {article_change[7]}%")
         st.write("**Current version:**")
         for change in article_change[4]:
-            highlighted_text(change, "+", "#ff935c")
+            highlighted_text(change, "+", "#fe2b2b")
 
 
 def mission_statement() -> None:
@@ -203,7 +203,7 @@ def mission_statement() -> None:
                 If they won't hold themselves accountable ... **WE WILL!**""")
 
 
-def heading_vs_body_changes_bar_chart(articles_joined_df: pd.DataFrame) -> None:
+def heading_vs_body_changes_pie_chart(articles_joined_df: pd.DataFrame) -> None:
     """Displays the number of heading changes and number """
     articles_joined_df = articles_joined_df.copy()
     data = articles_joined_df.groupby(
@@ -211,9 +211,62 @@ def heading_vs_body_changes_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     data.columns = ["Change Type", "count"]
     plot = alt.Chart(data, title="Article Change Types").mark_arc().encode(
     theta="count",
-    color="Change Type"
+    color="Change Type",
+    text="count"
+)
+    st.altair_chart(plot, use_container_width=True, theme="streamlit")
+
+
+def display_authors(article_changes: pd.DataFrame) -> None:
+    """Displays the authors"""
+    article_changes = article_changes.copy()
+    article_changes = article_changes.explode(column=["author"])
+    data = article_changes.groupby(
+        "author").size().reset_index(name="count")
+    st.write("---")
+    st.write(f"## Authors on record: {data.shape[0]}")
+
+
+def display_authors_and_changes(article_changes: pd.DataFrame) -> None:
+    """Displays the authors and their changes """
+    article_changes = article_changes.copy()
+    article_changes = article_changes.explode(column=["author"])
+    data = article_changes.groupby(
+        "author").size().reset_index(name="count").sort_values(by="count", ascending=False)[:10]
+    data.columns = ["Author", "Count"]
+    plot = alt.Chart(data, title="Changes per Author").mark_arc().encode(
+    theta="Count",
+    color="Author"
+)
+    st.altair_chart(plot, use_container_width=True, theme="streamlit")
+
+
+def display_change_counts(article_changes: pd.DataFrame) -> None:
+    """Displays the authors and their changes """
+    article_changes = article_changes.copy()
+    article_changes = article_changes.explode(column=["author"])
+    data = article_changes.groupby(
+        "author").size().reset_index()
+    data = data[0].value_counts().reset_index()
+    data.columns = ["Count", "Authors"]
+    plot = alt.Chart(data, title="Authors per Number of Article Changes").mark_bar().encode(
+    x="Count",
+    y="Authors"
+)
+    st.altair_chart(plot, theme="streamlit")
+
+
+def changed_vs_unchaged_pie_chart(articles_joined_df: pd.DataFrame, articles: pd.DataFrame) -> None:
+    """Displays the number of heading changes and number """
+    changed_count = articles_joined_df.groupby("article_id").size().reset_index(name="count").shape[0]
+    article_count = articles.shape[0] - changed_count
+    ratio = pd.DataFrame({"Change Status": ["Changed", "Unchanged"], "Count" : [changed_count, article_count]})
+    plot = alt.Chart(ratio, title="Proportion of Recorded Articles Changed").mark_arc().encode(
+    theta="Count",
+    color="Change Status"
 )
     st.altair_chart(plot, use_container_width=True)
+
 
 def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None:
     """Displays the article information with the most changes"""
@@ -233,10 +286,6 @@ def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None
 
 # most recent 5 articles changed
 # top five most changed articles
-# articles we have vs articles changed
-# barchart of most changes
-# authors with the most changes
-# change legend on charts
 
 def display() -> None:
     """Displays the dashboard"""
@@ -248,7 +297,7 @@ def display() -> None:
         # set-up the data
         article_changes = retrieve_article_changes()
         articles = retrieve_article_info()
-        articles["authors"] = articles["article_id"].apply(retrieve_author)
+        article_changes["author"] = article_changes["article_id"].apply(retrieve_author)
         article_changes.to_csv("changes_column.csv")
         article_changes["previous_version"] = article_changes["previous_version"]\
             .apply(format_article_change)
@@ -283,9 +332,24 @@ def display() -> None:
                 display_article_changes_above_number(article_changes, 5)
             with col3:
                 display_article_changes_above_number(article_changes, 10)
+            st.markdown("---")
+            st.write("## Changes Overview")
             changes_per_source_bar_chart(articles_joined)
-            heading_vs_body_changes_bar_chart(articles_joined)
+            col1, col2= st.columns(2)
+            with col1:
+                changed_vs_unchaged_pie_chart(article_changes, articles)
+            with col2:
+                heading_vs_body_changes_pie_chart(articles_joined)
+            display_authors(article_changes)
+            col1, col2= st.columns(2)
+            with col1:
+                display_change_counts(article_changes)
+            with col2:
+                display_authors_and_changes(article_changes)
+
+            st.write("---")
             display_article_with_most_changes(article_changes)
+
 
         # one selection
         if isinstance(selected_articles, int):
