@@ -11,6 +11,7 @@ from annotated_text import annotated_text
 import requests
 from bs4 import BeautifulSoup as bs
 import re
+import altair
 
 
 def get_image(url: str) -> None:
@@ -43,12 +44,26 @@ def retrieve_article_info() -> pd.DataFrame:
 
         cur.execute("""SELECT ar.article_id, ar.article_url,
                     ar.source, ar.created_at
-                FROM article ar;""")
+                FROM article ar JOIN article_version av ON ar.article_id = av.article_id;""")
 
         data = cur.fetchall()
 
-    return pd.DataFrame(data, columns=["article_id", "article_url",
+    data = pd.DataFrame(data, columns=["article_id", "article_url",
                                        "source", "created_at"])
+
+    return data
+
+
+@st.cache_data
+def retrieve_heading(article_id: str) -> str:
+    """Retrieves heading for selected articles"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT av.heading FROM
+                    article_version av JOIN article ar ON av.article_id = ar.article_id WHERE av.article_id = %s ORDER BY scraped_at
+                    ASC LIMIT 1;""", [article_id])
+        heading = cur.fetchall()[0][0]
+        return heading
 
 
 @st.cache_data
@@ -133,11 +148,22 @@ def total_articles_scraped(articles_df: pd.DataFrame):
     st.metric("Total articles scraped:", total_articles_scraped)
 
 
+def display_article_changes_above_number(article_changes: pd.DataFrame, threshold: int):
+    """Displays how many articles have changes over the threshold"""
+
+    changes = article_changes["article_id"].value_counts(
+    ).reset_index()
+    changes = changes[changes["count"] > threshold]
+    st.metric(f"More than {threshold} changes to article:", changes.shape[0])
+
+
+
 def display_one_article(article_changes: pd.DataFrame) -> None:
     """Displays a page for a selected article"""
 
     article_url = article_changes["article_url"].iloc[0]
-    st.title(article_url)
+    heading = article_changes["heading"].iloc[0]
+    st.title(heading)
     image = get_image(article_url)
     if image:
         st.image(image)
@@ -181,6 +207,7 @@ def heading_vs_body_changes_bar_chart(articles_joined_df: pd.DataFrame) -> None:
         y="count",
         labels={"source": "News Source", "0": "Number of Changes"},
         color="change_type",
+        # make piechart
         title="Total Types of Article Changes",
 
     )
@@ -203,11 +230,19 @@ def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None
     data = most_changed_article.to_records(index=False)[0]
     display_article_change(data)
 
+# most recent 5 articles changed
+# top five most changed articles
+# articles we have vs articles changed
+# barchart of most changes
+# authors with the most changes
+# change legend on charts
 
 def display() -> None:
     """Displays the dashboard"""
 
     try:
+        st.set_page_config(
+        page_title="News Change Tracker", layout="wide")
 
         # set-up the data
         article_changes = retrieve_article_changes()
@@ -220,6 +255,7 @@ def display() -> None:
             .apply(format_article_change)
         article_changes["change_type"] = article_changes["change_type"].\
             apply(format_change_column)
+        article_changes["heading"] = article_changes["article_id"].apply(retrieve_heading)
 
         articles_joined = pd.merge(
             article_changes, articles, how="left", on="article_id")
@@ -236,8 +272,16 @@ def display() -> None:
         # homepage
         if isinstance(selected_articles, str):
             dash_header()
+            st.markdown("---")
             mission_statement()
-            total_articles_scraped(articles)
+            st.markdown("---")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                total_articles_scraped(articles)
+            with col2:
+                display_article_changes_above_number(article_changes, 5)
+            with col3:
+                display_article_changes_above_number(article_changes, 10)
             changes_per_source_bar_chart(articles_joined)
             heading_vs_body_changes_bar_chart(articles_joined)
             display_article_with_most_changes(article_changes)
