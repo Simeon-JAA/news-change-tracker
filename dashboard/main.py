@@ -90,8 +90,25 @@ def retrieve_article_count() -> str:
         data = cur.fetchone()[0]
         return data
 
+
 def retrieve_article_count_above_number(above: str) -> str:
-    """Retrieves article count with changes above number"""
+    """Retrieves article count with changes above number"""\
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT COUNT(*) FROM (SELECT article_id
+    FROM changes.article_change GROUP BY article_id HAVING COUNT(article_id)
+     > %s) AS subquery;""", [above])
+        data = cur.fetchone()[0]
+        return data
+
+
+def retrieve_articles_per_source() -> list:
+    """Returns the amount of articles per source"""
+    with conn.cursor() as cur:
+        cur.execute("""SELECT count(article_id), source from article GROUP BY source;""")
+        data = cur.fetchall()
+        return pd.DataFrame(data, columns=["Count", "Source"])
+
 
 # searchbar
 def retrieve_article_id_with_headlines() -> pd.DataFrame:
@@ -138,18 +155,15 @@ def mission_statement() -> None:
     st.markdown("""**The News Change Tracker allows you to track changes from publications, in real time.**""")
 
 
-def total_articles_scraped():
+def total_numbers():
     """Displays a metric of number of scraped articles"""
-    st.metric("Total articles scraped:", retrieve_article_count())
-
-
-def display_article_changes_above_number(article_changes: pd.DataFrame, threshold: int):
-    """Displays how many articles have changes over the threshold"""
-    article_changes = article_changes.copy()
-    changes = article_changes["article_id"].value_counts(
-    ).reset_index()
-    changes = changes[changes["count"] > threshold]
-    st.metric(f"More than {threshold} changes to article:", changes.shape[0])
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total articles scraped:", retrieve_article_count())
+    with col2:
+        st.metric(f"More than 5 changes to article:", retrieve_article_count_above_number("5"))
+    with col3:
+        st.metric(f"More than 10 changes to article:", retrieve_article_count_above_number("10"))
 
 
 # one article page
@@ -221,16 +235,15 @@ def display_article_change(article_change: tuple) -> None:
 
 
 # charts
-def changes_per_source_bar_chart(articles_joined_df: pd.DataFrame) -> None:
+def changes_per_source_bar_chart() -> None:
     """Displays a bar chart of number of changes per source"""
-    data = articles_joined_df.copy().groupby(
-        "source").size().reset_index(name="count")
+    data = retrieve_articles_per_source()
     fig = px.bar(
         data,
-        x="source",
-        y="count",
-        labels={"source": "News Source", "count": "Count"},
-        color="source",
+        x="Source",
+        y="Count",
+        labels={"Source": "News Source", "Count": "Count"},
+        color="Source",
         title="Number of Article Changes per Source",
 
     )
@@ -371,16 +384,10 @@ def display() -> None:
             st.markdown("---")
             mission_statement()
             st.markdown("---")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                total_articles_scraped()
-            with col2:
-                display_article_changes_above_number(article_changes, 5)
-            with col3:
-                display_article_changes_above_number(article_changes, 10)
+            total_numbers()
             st.markdown("---")
             st.write("## Changes Overview")
-            changes_per_source_bar_chart(articles_joined)
+            changes_per_source_bar_chart()
             col1, col2 = st.columns(2)
             with col1:
                 changed_vs_unchaged_pie_chart(article_changes, articles)
