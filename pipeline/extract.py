@@ -60,6 +60,8 @@ def scrape_all_articles(urls: list) -> pd.DataFrame:
                 continue
         except KeyboardInterrupt:
             raise KeyboardInterrupt("Stopped by user")
+        except KeyError:
+            print("Sports article found; continuing.")
         except Exception as exc:
             print(exc)
     return pd.DataFrame(article_list)

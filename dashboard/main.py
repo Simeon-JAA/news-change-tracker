@@ -12,7 +12,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 import re
 import altair as alt
-
+import warnings
 
 def get_image(url: str) -> None:
     article = requests.get(url, timeout=10)
@@ -43,13 +43,12 @@ def retrieve_article_info() -> pd.DataFrame:
     with conn.cursor() as cur:
 
         cur.execute("""SELECT ar.article_id, ar.article_url,
-                    ar.source, ar.created_at
-                FROM article ar;""")
+                    ar.source FROM article ar;""")
 
         data = cur.fetchall()
 
     data = pd.DataFrame(data, columns=["article_id", "article_url",
-                                       "source", "created_at"])
+                                       "source"])
 
     return data
 
@@ -107,10 +106,6 @@ def format_change_column(change: str) -> str:
     return change.title()
 
 
-def display_changes_piechart(df: pd.DataFrame) -> None:
-    """Displays a pie chart"""
-
-
 def highlighted_text(changes: list, symbol: str, colour: str) -> None:
     """Displays highlighted changes side by side"""
 
@@ -132,7 +127,7 @@ def dash_header():
 
 def changes_per_source_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     """Displays a bar chart of number of changes per source"""
-    data = articles_joined_df.groupby(
+    data = articles_joined_df.copy().groupby(
         "source").size().reset_index(name="count")
     fig = px.bar(
         data,
@@ -154,12 +149,11 @@ def total_articles_scraped(articles_df: pd.DataFrame):
 
 def display_article_changes_above_number(article_changes: pd.DataFrame, threshold: int):
     """Displays how many articles have changes over the threshold"""
-
+    article_changes = article_changes.copy()
     changes = article_changes["article_id"].value_counts(
     ).reset_index()
     changes = changes[changes["count"] > threshold]
     st.metric(f"More than {threshold} changes to article:", changes.shape[0])
-
 
 
 def display_one_article(article_changes: pd.DataFrame) -> None:
@@ -211,11 +205,11 @@ def heading_vs_body_changes_pie_chart(articles_joined_df: pd.DataFrame) -> None:
     data = articles_joined_df.groupby(
         "change_type").size().reset_index(name="count")
     data.columns = ["Change Type", "count"]
-    plot = alt.Chart(data, title="Article Change Types").mark_arc().encode(
-    theta="count",
-    color="Change Type",
-    text="count"
+    plot = alt.Chart(data, title="Article Change Types").mark_bar().encode(
+    x='Change Type',
+    y='count'
 )
+
     st.altair_chart(plot, use_container_width=True, theme="streamlit")
 
 
@@ -236,9 +230,9 @@ def display_authors_and_changes(article_changes: pd.DataFrame) -> None:
     data = article_changes.groupby(
         "author").size().reset_index(name="count").sort_values(by="count", ascending=False)[:10]
     data.columns = ["Author", "Count"]
-    plot = alt.Chart(data, title="Changes per Author").mark_arc().encode(
-    theta="Count",
-    color="Author"
+    plot = alt.Chart(data, title="Number of Changes per Author").mark_bar().encode(
+    x='Author',
+    y='Count'
 )
     st.altair_chart(plot, use_container_width=True, theme="streamlit")
 
@@ -260,18 +254,22 @@ def display_change_counts(article_changes: pd.DataFrame) -> None:
 
 def changed_vs_unchaged_pie_chart(articles_joined_df: pd.DataFrame, articles: pd.DataFrame) -> None:
     """Displays the number of heading changes and number """
+    articles_joined_df = articles_joined_df.copy()
+    articles = articles.copy()
     changed_count = articles_joined_df.groupby("article_id").size().reset_index(name="count").shape[0]
     article_count = articles.shape[0] - changed_count
     ratio = pd.DataFrame({"Change Status": ["Changed", "Unchanged"], "Count" : [changed_count, article_count]})
-    plot = alt.Chart(ratio, title="Proportion of Recorded Articles Changed").mark_arc().encode(
-    theta="Count",
-    color="Change Status"
+    plot = alt.Chart(ratio, title="Proportion of Recorded Articles Changed").encode(
+    x='Change Status',
+    y='Count'
 )
-    st.altair_chart(plot, use_container_width=True)
+
+    st.altair_chart(plot.mark_bar() + plot.mark_text(align='left', dx=2), use_container_width=True)
 
 
 def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None:
     """Displays the article information with the most changes"""
+    articles_changes_df = articles_changes_df.copy()
 
     most_changes_id = int(articles_changes_df["article_id"].value_counts(
     ).reset_index().iloc[0]["article_id"])
@@ -286,13 +284,13 @@ def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None
     data = most_changed_article.to_records(index=False)[0]
     display_article_change(data)
 
-# most recent 5 articles changed
-# top five most changed articles
 
 def display() -> None:
     """Displays the dashboard"""
 
     try:
+
+        warnings.filterwarnings("ignore")
         st.set_page_config(
         page_title="News Change Tracker", layout="wide")
 
@@ -314,12 +312,13 @@ def display() -> None:
         sources = articles_joined["source"].unique()
 
         # multiselect
-        options = sorted(article_changes["article_id"].drop_duplicates())
-        options.insert(0, "Homepage")
-        selected_articles = st.sidebar.selectbox("Article ID", options=options, index=0)
+        selection_df = sorted(article_changes["article_id"].drop_duplicates())
+        print(selection_df)
+        selection_df.insert(0, "Homepage")
+        selected_articles = st.sidebar.selectbox("Article ID", options=selection_df, index=0)
         selected_sources = st.sidebar.selectbox(
             "Source", options=sorted(sources))
-
+        print(selected_articles)
 
         # homepage
         if isinstance(selected_articles, str):
@@ -337,7 +336,7 @@ def display() -> None:
             st.markdown("---")
             st.write("## Changes Overview")
             changes_per_source_bar_chart(articles_joined)
-            col1, col2= st.columns(2)
+            col1, col2 = st.columns(2)
             with col1:
                 changed_vs_unchaged_pie_chart(article_changes, articles)
             with col2:
@@ -358,7 +357,7 @@ def display() -> None:
             working_article = article_changes[article_changes["article_id"]
                                               == selected_articles]
             display_one_article(working_article)
-            working_article["image"] = working_article["article_url"].apply(
+            working_article.loc[:, "image"] = working_article.loc[:, "article_url"].apply(
                 lambda x: get_image(x))
 
         # return article_changes, articles -

@@ -1,6 +1,6 @@
 python-dotenv
-psycopg2
 streamlit
+psycopg2
 st-annotated-text
 plotly
 beautifulsoup4
