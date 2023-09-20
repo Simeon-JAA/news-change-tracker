@@ -14,11 +14,6 @@ import re
 import altair as alt
 import warnings
 
-def get_image(url: str) -> None:
-    article = requests.get(url, timeout=10)
-    soup = bs(article.content, 'lxml')
-    picture = soup.find('img', {"srcset": re.compile(".*")})["src"]
-    return picture
 
 
 def get_db_connection() -> connection:
@@ -54,18 +49,6 @@ def retrieve_article_info() -> pd.DataFrame:
 
 
 @st.cache_data
-def retrieve_heading(article_id: str) -> str:
-    """Retrieves heading for selected articles"""
-
-    with conn.cursor() as cur:
-        cur.execute("""SELECT av.heading FROM
-                    article_version av JOIN article ar ON av.article_id = ar.article_id WHERE av.article_id = %s ORDER BY scraped_at
-                    ASC LIMIT 1;""", [article_id])
-        heading = cur.fetchall()[0][0]
-        return heading
-
-
-@st.cache_data
 def retrieve_article_changes() -> pd.DataFrame:
     """Retrieves article information from article_change"""
 
@@ -82,6 +65,52 @@ def retrieve_article_changes() -> pd.DataFrame:
                                        "last_scraped", "current_scraped", "similarity"])
 
 
+# setup data
+def retrieve_article_change_with_id(article_id) -> pd.DataFrame:
+    """Retrieves article information from article_change by id"""
+
+    with conn.cursor() as cur:
+
+        cur.execute("""SELECT article_id, article_url, change_type,\
+            previous_version, current_version, last_scraped, current_scraped,
+                    similarity FROM changes.article_change WHERE article_id = %s;""", [str(article_id)])
+
+        data = cur.fetchall()
+
+    return pd.DataFrame(data, columns=["article_id", "article_url",
+                                       "change_type", "previous_version", "current_version",
+                                       "last_scraped", "current_scraped", "similarity"])
+
+
+def retrieve_article_count() -> str:
+    """Retrieves a current article count"""
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM article;")
+        data = cur.fetchone()[0]
+        return data
+
+def retrieve_article_count_above_number(above: str) -> str:
+    """Retrieves article count with changes above number"""
+
+# searchbar
+def retrieve_article_id_with_headlines() -> pd.DataFrame:
+    """Retrieves article_ids from articles that had changes with original headlines"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT DISTINCT(c.article_id) as id, v.heading, c.similarity
+                     from (SELECT a.article_id, a.similarity
+                FROM changes.article_change a
+                JOIN ( SELECT article_id, MIN(similarity) as min_similarity
+                FROM changes.article_change GROUP BY article_id
+                ) b ON a.article_id = b.article_id AND a.similarity = b.min_similarity) c
+                LEFT JOIN (SELECT article_id, heading FROM article_version
+                WHERE (article_id, scraped_at) IN (SELECT article_id, MIN(scraped_at)
+                FROM article_version GROUP BY article_id)) v ON c.article_id =
+                v.article_id ORDER BY id ASC;""")
+        data = cur.fetchall()
+        return pd.DataFrame(data, columns=["article_id", "heading", "similarity"])
+
 @st.cache_data
 def retrieve_author(article_id: int) -> list:
     """Retrieves authors for selected article_id. Returns a list"""
@@ -93,6 +122,43 @@ def retrieve_author(article_id: int) -> list:
                     aa.article_id WHERE aa.article_id = %s;""", [article_id])
         authors = cur.fetchall()
         return [author[0] for author in authors]
+
+
+# homepage details
+def dash_header():
+    """Creates a dashboard header"""
+    st.image("header_image.png")
+
+
+def mission_statement() -> None:
+    """Displays the mission statement"""
+    st.markdown("### Who are we?")
+    st.markdown("""**News sources often change their articles without public disclosure.
+                In the spirit of transparency and accountability, we want to change this.**""")
+    st.markdown("""**The News Change Tracker allows you to track changes from publications, in real time.**""")
+
+
+def total_articles_scraped():
+    """Displays a metric of number of scraped articles"""
+    st.metric("Total articles scraped:", retrieve_article_count())
+
+
+def display_article_changes_above_number(article_changes: pd.DataFrame, threshold: int):
+    """Displays how many articles have changes over the threshold"""
+    article_changes = article_changes.copy()
+    changes = article_changes["article_id"].value_counts(
+    ).reset_index()
+    changes = changes[changes["count"] > threshold]
+    st.metric(f"More than {threshold} changes to article:", changes.shape[0])
+
+
+# one article page
+def get_image(url: str) -> None:
+    """Gets article image"""
+    article = requests.get(url, timeout=10)
+    soup = bs(article.content, 'lxml')
+    picture = soup.find('img', {"srcset": re.compile(".*")})["src"]
+    return picture
 
 
 def format_article_change(block: str) -> list:
@@ -120,11 +186,41 @@ def highlighted_text(changes: list, symbol: str, colour: str) -> None:
     annotated_text(string_builder)
 
 
-def dash_header():
-    """Creates a dashboard header"""
-    st.image("header_image.png")
+def display_one_article(article_changes: pd.DataFrame, heading: str) -> None:
+    """Displays a page for a selected article"""
+    article_changes = article_changes.copy()
+    article_changes["previous_version"] = article_changes["previous_version"].apply(format_article_change)
+    article_changes["current_version"] = article_changes["current_version"].apply(format_article_change)
+    article_url = article_changes["article_url"].iloc[0]
+    st.markdown(f"# [{heading}](%s)"% article_url)
+    image = get_image(article_url)
+    if image:
+        st.image(image, width=700)
+    st.markdown(f"## Total changes: {article_changes.shape[0]}")
+
+    tuples = article_changes.to_records(index=False)
+    for one_tuple in tuples:
+        print(one_tuple)
+        display_article_change(one_tuple)
 
 
+def display_article_change(article_change: tuple) -> None:
+    """An add-on that displays a single change"""
+
+    col1, col2 = st.columns(2, gap="medium")
+    with col1:
+        st.write(f"### Type of change: {article_change[2].title()}")
+        st.write(f"**Previous version: {article_change[5].strftime('%Y-%m-%d %H:%M:%S')}**")
+        for change in article_change[3]:
+            highlighted_text(change, "-", "#84c9ff")
+    with col2:
+        st.markdown(f"### Similarity: {article_change[7]}%")
+        st.write(f"**Current version: {article_change[6].strftime('%Y-%m-%d %H:%M:%S')}**")
+        for change in article_change[4]:
+            highlighted_text(change, "+", "#fe2b2b")
+
+
+# charts
 def changes_per_source_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     """Displays a bar chart of number of changes per source"""
     data = articles_joined_df.copy().groupby(
@@ -140,63 +236,6 @@ def changes_per_source_bar_chart(articles_joined_df: pd.DataFrame) -> None:
     )
     st.plotly_chart(fig, theme="streamlit", use_container_width=False)
 
-
-def total_articles_scraped(articles_df: pd.DataFrame):
-    """Displays a metric of number of scraped articles"""
-    total_articles_scraped = articles_df.shape[0]
-    st.metric("Total articles scraped:", total_articles_scraped)
-
-
-def display_article_changes_above_number(article_changes: pd.DataFrame, threshold: int):
-    """Displays how many articles have changes over the threshold"""
-    article_changes = article_changes.copy()
-    changes = article_changes["article_id"].value_counts(
-    ).reset_index()
-    changes = changes[changes["count"] > threshold]
-    st.metric(f"More than {threshold} changes to article:", changes.shape[0])
-
-
-def display_one_article(article_changes: pd.DataFrame) -> None:
-    """Displays a page for a selected article"""
-    article_changes = article_changes.copy()
-    st.write("Original headline:")
-    article_url = article_changes["article_url"].iloc[0]
-    heading = article_changes["heading"].iloc[0]
-    st.markdown(f"# {heading}")
-    image = get_image(article_url)
-    if image:
-        st.image(image)
-
-    st.write(f"URL: {article_url}")
-    st.markdown(f"## Total changes: {article_changes.shape[0]}")
-
-    tuples = article_changes.to_records(index=False)
-    for one_tuple in tuples:
-        display_article_change(one_tuple)
-
-
-def display_article_change(article_change: tuple) -> None:
-    """An add-on that displays a single change"""
-
-    col1, col2 = st.columns(2, gap="medium")
-    with col1:
-        st.write(f"### Type of change: {article_change[2]}")
-        st.write("**Previous version:**")
-        for change in article_change[3]:
-            highlighted_text(change, "-", "#84c9ff")
-    with col2:
-        st.markdown(f"### Similarity: {article_change[7]}%")
-        st.write("**Current version:**")
-        for change in article_change[4]:
-            highlighted_text(change, "+", "#fe2b2b")
-
-
-def mission_statement() -> None:
-    """Displays the mission statement"""
-    st.markdown("### Who are we?")
-    st.markdown("""**News sources often change their articles without public disclosure.
-                In the spirit of transparency and accountability, we want to change this.**""")
-    st.markdown("""**The News Change Tracker allows you to track changes from publications, in real time.**""")
 
 
 def heading_vs_body_changes_pie_chart(articles_joined_df: pd.DataFrame) -> None:
@@ -305,28 +344,36 @@ def display() -> None:
             .apply(format_article_change)
         article_changes["change_type"] = article_changes["change_type"].\
             apply(format_change_column)
-        article_changes["heading"] = article_changes["article_id"].apply(retrieve_heading)
-
         articles_joined = pd.merge(
             article_changes, articles, how="left", on="article_id")
         sources = articles_joined["source"].unique()
 
-        # multiselect
-        selection_df = sorted(article_changes["article_id"].drop_duplicates())
-        selection_df.insert(0, "Homepage")
-        selected_articles = st.sidebar.selectbox("Article ID", options=selection_df, index=0)
-        selected_sources = st.sidebar.selectbox(
-            "Source", options=sorted(sources))
+        # setup the searchbar
+        id_and_headings = retrieve_article_id_with_headlines()
+        id_and_headings["similarity"] = id_and_headings["similarity"].map(int)
+        id_and_headings.loc[-1] = [0, "Homepage", 0]
+        id_and_headings.index = id_and_headings.index + 1
+        id_and_headings = id_and_headings.sort_index()
 
+        # multiselect
+        with st.sidebar:
+            start_pct, end_pct = st.select_slider("Select a range of similarity percentage", \
+        options=["0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], value=("0", "100"))
+
+            selected_articles = st.selectbox("Original Article Title", \
+                options=id_and_headings[(id_and_headings["similarity"] >= int(start_pct)) &\
+                                    (id_and_headings["similarity"] <= int(end_pct))]["heading"], index=0)
+
+            selected_sources = st.selectbox("Source", options=sorted(sources))
         # homepage
-        if isinstance(selected_articles, str):
+        if selected_articles == "Homepage":
             dash_header()
             st.markdown("---")
             mission_statement()
             st.markdown("---")
             col1, col2, col3 = st.columns(3)
             with col1:
-                total_articles_scraped(articles)
+                total_articles_scraped()
             with col2:
                 display_article_changes_above_number(article_changes, 5)
             with col3:
@@ -348,13 +395,12 @@ def display() -> None:
 
             st.write("---")
             display_article_with_most_changes(article_changes)
-
-
+        else:
         # one selection
-        if isinstance(selected_articles, int):
-            working_article = article_changes[article_changes["article_id"]
-                                              == selected_articles]
-            display_one_article(working_article)
+            article_id = id_and_headings[id_and_headings["heading"] == selected_articles]\
+                .iloc[0]["article_id"]
+            working_article = retrieve_article_change_with_id(article_id)
+            display_one_article(working_article, selected_articles)
             working_article.loc[:, "image"] = working_article.loc[:, "article_url"].apply(
                 lambda x: get_image(x))
 
