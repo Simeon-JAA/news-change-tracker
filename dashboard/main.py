@@ -313,12 +313,10 @@ def display() -> None:
 
         # multiselect
         selection_df = sorted(article_changes["article_id"].drop_duplicates())
-        print(selection_df)
         selection_df.insert(0, "Homepage")
         selected_articles = st.sidebar.selectbox("Article ID", options=selection_df, index=0)
         selected_sources = st.sidebar.selectbox(
             "Source", options=sorted(sources))
-        print(selected_articles)
 
         # homepage
         if isinstance(selected_articles, str):

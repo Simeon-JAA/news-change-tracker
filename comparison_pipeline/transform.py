@@ -39,10 +39,7 @@ def split_changes(differences: pd.DataFrame) -> pd.DataFrame:
     heading_change = pd.concat([heading_change, split_heading_change])
     body_change = pd.concat([body_change, split_body_change])
 
-    heading_change = format_changes_comparison(heading_change, "heading", "body")
-    body_change = format_changes_comparison(body_change, "body", "heading")
-
-    return pd.concat([heading_change, body_change])
+    return heading_change, body_change
 
 
 def format_changes_comparison(df: pd.DataFrame, type_of_change: str, other_change_column: str) -> pd.DataFrame:
@@ -57,6 +54,15 @@ def format_changes_comparison(df: pd.DataFrame, type_of_change: str, other_chang
                             "previous_scraped", "current_scraped"])
 
     return df
+
+
+def format_both_changes(heading_df: pd.DataFrame, body_df: pd.DataFrame) -> pd.DataFrame:
+    """Formats both heading and body changes into one df"""
+
+    heading_change = format_changes_comparison(heading_df, "heading", "body")
+    body_change = format_changes_comparison(body_df, "body", "heading")
+
+    return pd.concat([heading_change, body_change])
 
 
 def format_changes_version(df: pd.DataFrame) -> pd.DataFrame:
@@ -80,8 +86,9 @@ def transform_data() -> None:
 
         differences = identify_changes(scraped_data, previous_versions)
         if not differences.empty:
-            comparison_df = split_changes(differences)
-            version_df = format_changes_version(differences)
+            heading_change, body_change = split_changes(differences)
+            comparison_df = format_both_changes(heading_change, body_change)
+            version_df = format_changes_version(pd.concat([heading_change, body_change]))
 
         comparison_df.to_csv(ARTICLES_FOR_COMPARISON, index=False)
         version_df.to_csv(TRANSFORMED_ARTICLES_FOR_ARTICLE_VERSION, index=False)
