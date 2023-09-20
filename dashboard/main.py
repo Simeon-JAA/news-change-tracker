@@ -82,11 +82,37 @@ def retrieve_article_change_with_id(article_id) -> pd.DataFrame:
                                        "last_scraped", "current_scraped", "similarity"])
 
 
+def retrieve_article_with_most_changes() -> pd.DataFrame:
+    """Retrieves article with most changes"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT article_id, article_url, change_type,\
+            previous_version, current_version, last_scraped, current_scraped,
+                    similarity FROM changes.article_change WHERE article_id =
+                    (SELECT article_id, COUNT(article_id) from changes.article_change
+                    GROUP BY article_id);""")
+
+        data = cur.fetchall()
+
+    return pd.DataFrame(data, columns=["article_id", "article_url",
+                                       "change_type", "previous_version", "current_version",
+                                       "last_scraped", "current_scraped", "similarity"])
+
+
 def retrieve_article_count() -> str:
     """Retrieves a current article count"""
 
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM article;")
+        data = cur.fetchone()[0]
+        return data
+
+
+def retrieve_author_count() -> str:
+    """Retrieves a current author count"""
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM author;")
         data = cur.fetchone()[0]
         return data
 
@@ -102,12 +128,39 @@ def retrieve_article_count_above_number(above: str) -> str:
         return data
 
 
-def retrieve_articles_per_source() -> list:
+def retrieve_articles_per_source() -> pd.DataFrame:
     """Returns the amount of articles per source"""
     with conn.cursor() as cur:
         cur.execute("""SELECT count(article_id), source from article GROUP BY source;""")
         data = cur.fetchall()
         return pd.DataFrame(data, columns=["Count", "Source"])
+
+
+def retrieve_author_change_count() -> pd.DataFrame:
+    """Retrieves amount of changes per author"""
+    with conn.cursor() as cur:
+        cur.execute("""SELECT ar.author_name, COUNT(c.article_id) as change_count
+                FROM article_author a
+                RIGHT JOIN author ar ON ar.author_id = a.author_id
+                RIGHT JOIN changes.article_change c ON a.article_id = c.article_id
+                GROUP BY ar.author_name
+                ORDER BY change_count DESC LIMIT 10;""")
+        data = cur.fetchall()[1:]
+        return pd.DataFrame(data, columns=["Author Name", "Changes"])
+
+
+def retrieve_author_count_per_change() -> pd.DataFrame:
+    """Retrieves number of authors per number of changes"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT ar.author_name, COUNT(c.article_id) as change_count
+                FROM article_author a
+                LEFT JOIN author ar ON ar.author_id = a.author_id
+                LEFT JOIN changes.article_change c ON a.article_id = c.article_id
+                GROUP BY ar.author_name
+                ORDER BY ar.author_name ASC;""")
+        data = cur.fetchall()
+        return pd.DataFrame(data, columns=["Author Count", "Changes"])
 
 
 # searchbar
@@ -127,18 +180,6 @@ def retrieve_article_id_with_headlines() -> pd.DataFrame:
                 v.article_id ORDER BY id ASC;""")
         data = cur.fetchall()
         return pd.DataFrame(data, columns=["article_id", "heading", "similarity"])
-
-@st.cache_data
-def retrieve_author(article_id: int) -> list:
-    """Retrieves authors for selected article_id. Returns a list"""
-
-    with conn.cursor() as cur:
-        cur.execute("""SELECT au.author_name
-                    FROM author au JOIN article_author aa ON au.author_id
-                    = aa.author_id JOIN article ar ON ar.article_id =
-                    aa.article_id WHERE aa.article_id = %s;""", [article_id])
-        authors = cur.fetchall()
-        return [author[0] for author in authors]
 
 
 # homepage details
@@ -250,7 +291,6 @@ def changes_per_source_bar_chart() -> None:
     st.plotly_chart(fig, theme="streamlit", use_container_width=False)
 
 
-
 def heading_vs_body_changes_pie_chart(articles_joined_df: pd.DataFrame) -> None:
     """Displays the number of heading changes and number """
     articles_joined_df = articles_joined_df.copy()
@@ -265,41 +305,30 @@ def heading_vs_body_changes_pie_chart(articles_joined_df: pd.DataFrame) -> None:
     st.altair_chart(plot, use_container_width=True, theme="streamlit")
 
 
-def display_authors(article_changes: pd.DataFrame) -> None:
+def display_authors() -> None:
     """Displays the authors"""
-    article_changes = article_changes.copy()
-    article_changes = article_changes.explode(column=["author"])
-    data = article_changes.groupby(
-        "author").size().reset_index(name="count")
     st.write("---")
-    st.write(f"## Authors on record: {data.shape[0]}")
+    st.write(f"## Authors on record: {retrieve_author_count()}")
 
 
-def display_authors_and_changes(article_changes: pd.DataFrame) -> None:
+def display_authors_and_changes() -> None:
     """Displays the authors and their changes """
-    article_changes = article_changes.copy()
-    article_changes = article_changes.explode(column=["author"])
-    data = article_changes.groupby(
-        "author").size().reset_index(name="count").sort_values(by="count", ascending=False)[:10]
-    data.columns = ["Author", "Count"]
+    data = retrieve_author_change_count()
     plot = alt.Chart(data, title="Number of Changes per Author").mark_bar().encode(
-    x='Author',
-    y='Count'
+    x='Author Name',
+    y='Changes'
 )
     st.altair_chart(plot, use_container_width=True, theme="streamlit")
 
 
-def display_change_counts(article_changes: pd.DataFrame) -> None:
+def display_change_counts() -> None:
     """Displays the authors and their changes """
-    article_changes = article_changes.copy()
-    article_changes = article_changes.explode(column=["author"])
-    data = article_changes.groupby(
-        "author").size().reset_index()
-    data = data[0].value_counts().reset_index()
-    data.columns = ["Count", "Authors"]
+    data = retrieve_author_count_per_change()
+    data = data.groupby(["Changes"]).count().reset_index()
+
     plot = alt.Chart(data, title="Authors per Number of Article Changes").mark_bar().encode(
-    x="Count",
-    y="Authors"
+    x="Changes:O",
+    y="Author Count"
 )
     st.altair_chart(plot, theme="streamlit")
 
@@ -349,8 +378,6 @@ def display() -> None:
         # set-up the data
         article_changes = retrieve_article_changes()
         articles = retrieve_article_info()
-        article_changes["author"] = article_changes["article_id"].apply(retrieve_author)
-        article_changes.to_csv("changes_column.csv")
         article_changes["previous_version"] = article_changes["previous_version"]\
             .apply(format_article_change)
         article_changes["current_version"] = article_changes["current_version"]\
@@ -393,12 +420,12 @@ def display() -> None:
                 changed_vs_unchaged_pie_chart(article_changes, articles)
             with col2:
                 heading_vs_body_changes_pie_chart(articles_joined)
-            display_authors(article_changes)
+            display_authors()
             col1, col2= st.columns(2)
             with col1:
-                display_change_counts(article_changes)
+                display_change_counts()
             with col2:
-                display_authors_and_changes(article_changes)
+                display_authors_and_changes()
 
             st.write("---")
             display_article_with_most_changes(article_changes)
