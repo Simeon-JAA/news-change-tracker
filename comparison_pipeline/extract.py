@@ -49,7 +49,7 @@ def scrape_article(article_url: str) -> dict:
 
     article_dict = {}
 
-    article = requests.get(article_url, timeout=10)
+    article = requests.get(article_url, timeout=30)
     soup = bs(article.content, 'lxml')
     body = soup.find('main', id='main-content')
     headline = soup.find('h1').text

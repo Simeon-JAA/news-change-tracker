@@ -39,17 +39,11 @@ def scrape_article(article_url: str) -> dict:
         relevant_divs = body.findAll('div', attrs={"data-component": "text-block"})
         text = " ".join(div.find('p').text for div in relevant_divs)
         author = body.find('div', attrs= {"class": re.compile(".*TextContributorName")})
-    else:
-        body = soup.find('article')
-        if body:
-            text = " ".join([p.text for p in body.findAll('p')])
-            author = body.find('div', attrs= {"class": re.compile(".*TextContributorName")})
 
-
-    article_dict["body"] = text
-    article_dict["headline"] = headline
-    article_dict["url"] = article_url
-    article_dict["author"] = getattr(author, "text", None)
+        article_dict["body"] = text
+        article_dict["headline"] = headline
+        article_dict["url"] = article_url
+        article_dict["author"] = getattr(author, "text", None)
 
     return article_dict
 
@@ -66,6 +60,8 @@ def scrape_all_articles(urls: list) -> pd.DataFrame:
                 continue
         except KeyboardInterrupt:
             raise KeyboardInterrupt("Stopped by user")
+        except KeyError:
+            print("Sports article found; continuing.")
         except Exception as exc:
             print(exc)
     return pd.DataFrame(article_list)
