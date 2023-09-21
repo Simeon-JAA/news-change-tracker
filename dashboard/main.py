@@ -32,6 +32,18 @@ conn = get_db_connection()
 
 
 # setup data
+def retrieve_highest_change_count() -> str:
+    """Retrieves the higest article change count"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT COUNT(article_id), article_id FROM changes.article_change
+                    GROUP BY article_id ORDER BY COUNT(article_id) DESC LIMIT 1;""")
+
+        data = cur.fetchone()[0]
+
+        return data
+
+
 def retrieve_article_change_with_id(article_id: int) -> pd.DataFrame:
     """Retrieves article information from article_change by id"""
 
@@ -193,6 +205,16 @@ def retrieve_article_id_with_headlines() -> pd.DataFrame:
         return pd.DataFrame(data, columns=["article_id", "heading", "similarity"])
 
 
+def retrieve_change_count() -> pd.DataFrame:
+    """Retrieves a count in changes.article_change by article_id"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT article_id, COUNT(article_id) FROM changes.article_change
+                    GROUP BY article_id;""")
+        data = cur.fetchall()
+        return pd.DataFrame(data, columns=["article_id", "change_count"])
+
+
 # homepage details
 def dash_header():
     """Creates a dashboard header"""
@@ -218,16 +240,19 @@ def total_numbers():
         st.metric(f"More than 5 changes to article:", retrieve_article_count_above_number("5"))
     with col3:
         st.metric(f"More than 10 changes to article:", retrieve_article_count_above_number("10"))
-    with col4:
-        sources = retrieve_articles_per_source()["Source"].count()
-        st.metric(f"Total news sources:", sources)
+    # with col4:
+    #     sources = retrieve_articles_per_source()["Source"].count()
+    #     st.metric(f"Total news sources:", sources)
 
 
 def searchbar_setup() -> pd.DataFrame:
     """Sets up the searchbar data"""
     id_and_headings = retrieve_article_id_with_headlines()
+    id_and_headings = id_and_headings.merge(retrieve_change_count(), how="left",\
+                        on="article_id")
+    id_and_headings["change_count"] = id_and_headings["change_count"].map(int)
     id_and_headings["similarity"] = id_and_headings["similarity"].map(int)
-    id_and_headings.loc[-1] = [0, "--Homepage--", 0]
+    id_and_headings.loc[-1] = [0, "--Homepage--", 0, 14]
     id_and_headings.index = id_and_headings.index + 1
     id_and_headings = id_and_headings.sort_index()
     return id_and_headings
@@ -389,13 +414,20 @@ def display() -> None:
         # searchbar
         sources = retrieve_articles_per_source()["Source"]
         id_and_headings = searchbar_setup()
+        max_changes = int(retrieve_highest_change_count())
+        changes = [str(number) for number in range(1, max_changes + 1)]
         with st.sidebar:
-            start_pct, end_pct = st.select_slider("Select a range of similarity percentage", \
+            start_pct, end_pct = st.select_slider("Select a similarity percentage", \
         options=["0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], value=("0", "100"))
+        with st.sidebar:
+            start_chg, end_chg = st.select_slider("Select number of changes to article",\
+        options=changes, value=("1", str(max_changes)))
 
             selected_articles = st.selectbox("Original Article Title", \
                 options=id_and_headings[(id_and_headings["similarity"] >= int(start_pct)) &\
-                                    (id_and_headings["similarity"] <= int(end_pct))]["heading"], index=0)
+                                    (id_and_headings["similarity"] <= int(end_pct)) &\
+                                (id_and_headings["change_count"] >= int(start_chg)) & \
+                                    (id_and_headings["change_count"] <= int(end_chg))]["heading"], index=0)
 
             selected_sources = st.selectbox("Source", options=sorted(sources))
 
@@ -432,7 +464,6 @@ def display() -> None:
             working_article.loc[:, "image"] = working_article.loc[:, "article_url"].apply(
                 lambda x: get_image(x))
 
-        # return article_changes, articles -
     except KeyboardInterrupt:
         print("User stopped the program.")
     finally:
