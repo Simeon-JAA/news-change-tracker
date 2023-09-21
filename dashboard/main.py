@@ -31,40 +31,6 @@ def get_db_connection() -> connection:
 conn = get_db_connection()
 
 
-@st.cache_data
-def retrieve_article_info() -> pd.DataFrame:
-    """Retrieves all article information. Returns dataframe"""
-
-    with conn.cursor() as cur:
-
-        cur.execute("""SELECT ar.article_id, ar.article_url,
-                    ar.source FROM article ar;""")
-
-        data = cur.fetchall()
-
-    data = pd.DataFrame(data, columns=["article_id", "article_url",
-                                       "source"])
-
-    return data
-
-
-@st.cache_data
-def retrieve_article_changes() -> pd.DataFrame:
-    """Retrieves article information from article_change"""
-
-    with conn.cursor() as cur:
-
-        cur.execute("""SELECT article_id, article_url, change_type,\
-            previous_version, current_version, last_scraped, current_scraped,
-                    similarity FROM changes.article_change;""")
-
-        data = cur.fetchall()
-
-    return pd.DataFrame(data, columns=["article_id", "article_url",
-                                       "change_type", "previous_version", "current_version",
-                                       "last_scraped", "current_scraped", "similarity"])
-
-
 # setup data
 def retrieve_article_change_with_id(article_id) -> pd.DataFrame:
     """Retrieves article information from article_change by id"""
@@ -89,8 +55,8 @@ def retrieve_article_with_most_changes() -> pd.DataFrame:
         cur.execute("""SELECT article_id, article_url, change_type,\
             previous_version, current_version, last_scraped, current_scraped,
                     similarity FROM changes.article_change WHERE article_id =
-                    (SELECT article_id, COUNT(article_id) from changes.article_change
-                    GROUP BY article_id);""")
+                    (SELECT article_id from changes.article_change
+                    GROUP BY article_id ORDER BY COUNT(article_id) DESC LIMIT 1);""")
 
         data = cur.fetchall()
 
@@ -163,6 +129,39 @@ def retrieve_author_count_per_change() -> pd.DataFrame:
         return pd.DataFrame(data, columns=["Author Count", "Changes"])
 
 
+def retrieve_changed_vs_unchaged_counts() -> pd.DataFrame:
+    """Retrieves counts for articles in changes.article_change and articles
+    not on the table"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT COUNT(DISTINCT(article_id)) from
+                    changes.article_change;""")
+        changed = cur.fetchone()[0]
+        unchanged = retrieve_article_count() - changed
+        return pd.DataFrame({"Status": ["Changed", "Unchanged"], "Count": [changed, unchanged]})
+
+
+def retrieve_change_type_counts() -> pd.DataFrame:
+    """Retrieves counts for change_types"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT change_type, COUNT(*)
+        FROM changes.article_change
+        GROUP BY change_type;""")
+        data = cur.fetchall()
+        return pd.DataFrame(data, columns=["Change Type", "Count"])
+
+
+def retrieve_heading(article_id: str) -> str:
+    """Retrieves an original heading for a single article"""
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT heading FROM article_version WHERE article_id =
+                    %s ORDER BY scraped_at ASC LIMIT 1;""", [article_id])
+        data = cur.fetchone()[0]
+        return data
+
+
 # searchbar
 def retrieve_article_id_with_headlines() -> pd.DataFrame:
     """Retrieves article_ids from articles that had changes with original headlines"""
@@ -205,6 +204,16 @@ def total_numbers():
         st.metric(f"More than 5 changes to article:", retrieve_article_count_above_number("5"))
     with col3:
         st.metric(f"More than 10 changes to article:", retrieve_article_count_above_number("10"))
+
+
+def searchbar_setup() -> pd.DataFrame:
+    """Sets up the searchbar data"""
+    id_and_headings = retrieve_article_id_with_headlines()
+    id_and_headings["similarity"] = id_and_headings["similarity"].map(int)
+    id_and_headings.loc[-1] = [0, "--Homepage--", 0]
+    id_and_headings.index = id_and_headings.index + 1
+    id_and_headings = id_and_headings.sort_index()
+    return id_and_headings
 
 
 # one article page
@@ -255,7 +264,6 @@ def display_one_article(article_changes: pd.DataFrame, heading: str) -> None:
 
     tuples = article_changes.to_records(index=False)
     for one_tuple in tuples:
-        print(one_tuple)
         display_article_change(one_tuple)
 
 
@@ -291,17 +299,13 @@ def changes_per_source_bar_chart() -> None:
     st.plotly_chart(fig, theme="streamlit", use_container_width=False)
 
 
-def heading_vs_body_changes_pie_chart(articles_joined_df: pd.DataFrame) -> None:
-    """Displays the number of heading changes and number """
-    articles_joined_df = articles_joined_df.copy()
-    data = articles_joined_df.groupby(
-        "change_type").size().reset_index(name="count")
-    data.columns = ["Change Type", "count"]
+def heading_vs_body_changes_chart() -> None:
+    """Displays the count of change types"""
+    data = retrieve_change_type_counts()
     plot = alt.Chart(data, title="Article Change Types").mark_bar().encode(
     x='Change Type',
-    y='count'
+    y='Count'
 )
-
     st.altair_chart(plot, use_container_width=True, theme="streamlit")
 
 
@@ -321,7 +325,7 @@ def display_authors_and_changes() -> None:
     st.altair_chart(plot, use_container_width=True, theme="streamlit")
 
 
-def display_change_counts() -> None:
+def display_change_counts_for_authors() -> None:
     """Displays the authors and their changes """
     data = retrieve_author_count_per_change()
     data = data.groupby(["Changes"]).count().reset_index()
@@ -333,37 +337,32 @@ def display_change_counts() -> None:
     st.altair_chart(plot, theme="streamlit")
 
 
-def changed_vs_unchaged_pie_chart(articles_joined_df: pd.DataFrame, articles: pd.DataFrame) -> None:
-    """Displays the number of heading changes and number """
-    articles_joined_df = articles_joined_df.copy()
-    articles = articles.copy()
-    changed_count = articles_joined_df.groupby("article_id").size().reset_index(name="count").shape[0]
-    article_count = articles.shape[0] - changed_count
-    ratio = pd.DataFrame({"Change Status": ["Changed", "Unchanged"], "Count" : [changed_count, article_count]})
-    plot = alt.Chart(ratio, title="Proportion of Recorded Articles Changed").encode(
-    x='Change Status',
+def changed_vs_unchaged_barchart() -> None:
+    """Displays a chart for changed vs unchaged article counts"""
+
+    data = retrieve_changed_vs_unchaged_counts()
+    plot = alt.Chart(data, title="Proportion of Recorded Articles Changed").mark_bar()\
+    .encode(
+    x='Status',
     y='Count'
 )
 
-    st.altair_chart(plot.mark_bar() + plot.mark_text(align='left', dx=2), use_container_width=True)
+    st.altair_chart(plot, use_container_width=True)
 
 
-def display_article_with_most_changes(articles_changes_df: pd.DataFrame) -> None:
+def display_article_with_most_changes() -> None:
     """Displays the article information with the most changes"""
-    articles_changes_df = articles_changes_df.copy()
-
-    most_changes_id = int(articles_changes_df["article_id"].value_counts(
-    ).reset_index().iloc[0]["article_id"])
-
-    most_changed_article = articles_changes_df[articles_changes_df["article_id"]
-                                               == most_changes_id]
+    article = retrieve_article_with_most_changes()
+    article["previous_version"] = article["previous_version"].apply(format_article_change)
+    article["current_version"] = article["current_version"].apply(format_article_change)
 
     st.markdown("### Article with most changes:")
-    st.markdown(f"**Article ID = {most_changed_article['article_id'].iloc[0]}, \
-                {most_changed_article.count().iloc[0]} changes.**")
+    article_url = article["article_url"].iloc[0]
+    heading = retrieve_heading(str(article["article_id"].iloc[0]))
+    st.markdown(f"# [{heading}](%s)"% article_url)
+    st.markdown(f" **Total of {article.count().iloc[0]} changes.**")
     st.write("### Example change:")
-    data = most_changed_article.to_records(index=False)[0]
-    display_article_change(data)
+    display_article_change(article.to_records(index=False)[0])
 
 
 def display() -> None:
@@ -375,27 +374,9 @@ def display() -> None:
         st.set_page_config(
         page_title="News Change Tracker", layout="wide")
 
-        # set-up the data
-        article_changes = retrieve_article_changes()
-        articles = retrieve_article_info()
-        article_changes["previous_version"] = article_changes["previous_version"]\
-            .apply(format_article_change)
-        article_changes["current_version"] = article_changes["current_version"]\
-            .apply(format_article_change)
-        article_changes["change_type"] = article_changes["change_type"].\
-            apply(format_change_column)
-        articles_joined = pd.merge(
-            article_changes, articles, how="left", on="article_id")
-        sources = articles_joined["source"].unique()
-
-        # setup the searchbar
-        id_and_headings = retrieve_article_id_with_headlines()
-        id_and_headings["similarity"] = id_and_headings["similarity"].map(int)
-        id_and_headings.loc[-1] = [0, "Homepage", 0]
-        id_and_headings.index = id_and_headings.index + 1
-        id_and_headings = id_and_headings.sort_index()
-
-        # multiselect
+        # searchbar
+        sources = retrieve_articles_per_source()["Source"]
+        id_and_headings = searchbar_setup()
         with st.sidebar:
             start_pct, end_pct = st.select_slider("Select a range of similarity percentage", \
         options=["0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"], value=("0", "100"))
@@ -405,8 +386,9 @@ def display() -> None:
                                     (id_and_headings["similarity"] <= int(end_pct))]["heading"], index=0)
 
             selected_sources = st.selectbox("Source", options=sorted(sources))
+
         # homepage
-        if selected_articles == "Homepage":
+        if selected_articles == "--Homepage--":
             dash_header()
             st.markdown("---")
             mission_statement()
@@ -417,18 +399,18 @@ def display() -> None:
             changes_per_source_bar_chart()
             col1, col2 = st.columns(2)
             with col1:
-                changed_vs_unchaged_pie_chart(article_changes, articles)
+                changed_vs_unchaged_barchart()
             with col2:
-                heading_vs_body_changes_pie_chart(articles_joined)
+                heading_vs_body_changes_chart()
             display_authors()
             col1, col2= st.columns(2)
             with col1:
-                display_change_counts()
+                display_change_counts_for_authors()
             with col2:
                 display_authors_and_changes()
 
             st.write("---")
-            display_article_with_most_changes(article_changes)
+            display_article_with_most_changes()
         else:
         # one selection
             article_id = id_and_headings[id_and_headings["heading"] == selected_articles]\
