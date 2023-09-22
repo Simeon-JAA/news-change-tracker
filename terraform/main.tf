@@ -158,7 +158,7 @@ resource "aws_iam_role_policy" "c8-news-tracker-cloud-log-policy" {
 			"Resource": "arn:aws:logs:*:129033205317:log-group:*"
 		}
 	]
-})
+  })
 }
 
 resource "aws_iam_role" "c8-news-change-tracker-ecs-role" {
