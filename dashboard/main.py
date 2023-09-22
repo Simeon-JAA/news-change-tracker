@@ -228,7 +228,7 @@ def mission_statement() -> None:
                 In the spirit of transparency and accountability, we want to change this.**""")
     st.markdown("""**The News Change Tracker allows you to track changes from publications, in real time.**""")
     st.markdown("""Please select stories by title and source on the left sidebar.
-                You may also filter by similarity percentage.""")
+                You may also filter by similarity percentage or number of changes to article.""")
 
 
 def total_numbers():
@@ -240,9 +240,9 @@ def total_numbers():
         st.metric(f"More than 5 changes to article:", retrieve_article_count_above_number("5"))
     with col3:
         st.metric(f"More than 10 changes to article:", retrieve_article_count_above_number("10"))
-    # with col4:
-    #     sources = retrieve_articles_per_source()["Source"].count()
-    #     st.metric(f"Total news sources:", sources)
+    with col4:
+        sources = retrieve_articles_per_source()["Source"].count()
+        st.metric(f"Total news sources:", sources)
 
 
 def searchbar_setup() -> pd.DataFrame:
@@ -252,7 +252,7 @@ def searchbar_setup() -> pd.DataFrame:
                         on="article_id")
     id_and_headings["change_count"] = id_and_headings["change_count"].map(int)
     id_and_headings["similarity"] = id_and_headings["similarity"].map(int)
-    id_and_headings.loc[-1] = [0, "--Homepage--", 0, 14]
+    id_and_headings.loc[-1] = [0, "--Homepage--", 0, 2]
     id_and_headings.index = id_and_headings.index + 1
     id_and_headings = id_and_headings.sort_index()
     return id_and_headings
